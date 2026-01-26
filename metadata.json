@@ -1,0 +1,7 @@
+{
+  "name": "SmartCalorie AI",
+  "description": "AI-powered nutrition tracker that analyzes food photos to log calories and predict weight changes based on your personal metabolic profile.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
