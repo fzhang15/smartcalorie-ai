@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { UserProfile, MealLog } from '../types';
 import { CALORIES_PER_KG_FAT } from '../constants';
-import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, User, Utensils, Users, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, User, Utensils, Users, ChevronLeft, ChevronRight, Calendar, Trash2, Clock } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 interface DashboardProps {
@@ -11,18 +11,43 @@ interface DashboardProps {
   onUpdateWeight: () => void;
   onReset: () => void;
   onSwitchUser: () => void;
+  onDeleteLog: (logId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ profile, logs, onOpenLogger, onUpdateWeight, onReset, onSwitchUser }) => {
+const Dashboard: React.FC<DashboardProps> = ({ profile, logs, onOpenLogger, onUpdateWeight, onReset, onSwitchUser, onDeleteLog }) => {
   // State for the currently viewed date (defaults to today)
   const [viewDate, setViewDate] = useState(new Date());
+  
+  // State for real-time clock update
+  const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Update current time every minute for real-time calorie burn calculation
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper function to check if a date is today
   const isToday = (date: Date) => {
     const today = new Date();
     return date.getDate() === today.getDate() &&
            date.getMonth() === today.getMonth() &&
            date.getFullYear() === today.getFullYear();
   };
+
+  // Calculate time-based calorie burn (proportional to time of day)
+  const getTimeBasedCalories = () => {
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    const dayProgress = (hours + minutes / 60) / 24;
+    return Math.round(profile.tdee * dayProgress);
+  };
+
+  const caloriesBurnedSoFar = isToday(viewDate) ? getTimeBasedCalories() : profile.tdee;
+  const timeProgress = isToday(viewDate) ? ((currentTime.getHours() + currentTime.getMinutes() / 60) / 24) * 100 : 100;
 
   const navigateDate = (days: number) => {
     const newDate = new Date(viewDate);
@@ -122,34 +147,57 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, logs, onOpenLogger, onUp
             <div className="flex justify-between items-end mb-4">
                 <div>
                     <p className="text-gray-400 text-sm font-medium mb-1">
-                        {isToday(viewDate) ? "Calories Remaining" : "Calories Consumed"}
+                        {isToday(viewDate) ? "Net Calories" : "Calories Consumed"}
                     </p>
                     <div className="text-4xl font-bold tracking-tight">
                         {isToday(viewDate) 
-                            ? Math.max(0, profile.tdee - totalCaloriesIn)
+                            ? (totalCaloriesIn - caloriesBurnedSoFar > 0 ? '+' : '') + (totalCaloriesIn - caloriesBurnedSoFar)
                             : totalCaloriesIn
                         }
                     </div>
+                    {isToday(viewDate) && (
+                        <p className="text-gray-500 text-xs mt-1">
+                            {totalCaloriesIn} eaten - {caloriesBurnedSoFar} burned
+                        </p>
+                    )}
                 </div>
                 <div className="text-right">
-                    <p className="text-gray-400 text-xs mb-1">Target</p>
+                    <p className="text-gray-400 text-xs mb-1">Daily Target</p>
                     <p className="font-semibold">{profile.tdee} kcal</p>
                 </div>
             </div>
             
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-800 rounded-full h-3 mb-2">
-              <div 
-                className={`h-3 rounded-full transition-all duration-1000 ${
-                    totalCaloriesIn > profile.tdee ? 'bg-red-500' : 'bg-brand-500'
-                }`} 
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
+            {/* Calories Eaten Progress Bar */}
+            <div className="mb-3">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <span className="flex items-center gap-1"><Utensils size={10}/> Eaten</span>
+                  <span>{Math.round(totalCaloriesIn)} / {profile.tdee}</span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-1000 ${
+                      totalCaloriesIn > profile.tdee ? 'bg-red-500' : 'bg-brand-500'
+                  }`} 
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-gray-400">
-                <span>0</span>
-                <span>{Math.round(totalCaloriesIn)} eaten</span>
-            </div>
+
+            {/* Time-based Burn Progress Bar (only for today) */}
+            {isToday(viewDate) && (
+              <div>
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span className="flex items-center gap-1"><Clock size={10}/> Burned</span>
+                    <span>{caloriesBurnedSoFar} / {profile.tdee}</span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full transition-all duration-1000 bg-orange-500" 
+                    style={{ width: `${timeProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -216,7 +264,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, logs, onOpenLogger, onUp
         ) : (
           <div className="space-y-4">
             {displayedLogs.slice().reverse().map((log) => (
-              <div key={log.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div key={log.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 relative group">
                 {log.imageUrl ? (
                     <img src={log.imageUrl} className="w-16 h-16 rounded-lg object-cover bg-gray-100" alt="meal" />
                 ) : (
@@ -232,7 +280,16 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, logs, onOpenLogger, onUp
                             {log.items.map(i => i.name).join(', ')}
                         </p>
                     </div>
-                    <span className="font-bold text-brand-600">{log.totalCalories}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-brand-600">{log.totalCalories}</span>
+                      <button 
+                        onClick={() => onDeleteLog(log.id)}
+                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
+                        title="Delete meal"
+                      >
+                        <Trash2 size={16}/>
+                      </button>
+                    </div>
                   </div>
                    <div className="mt-2 flex gap-2 text-[10px] text-gray-400 font-mono">
                        <span className="bg-gray-50 px-1.5 py-0.5 rounded text-green-600">P: {log.items.reduce((a,b) => a+b.protein, 0)}g</span>

@@ -140,6 +140,12 @@ const App: React.FC = () => {
     setLogs(prev => [...prev, log]);
   };
 
+  const handleDeleteLog = (logId: string) => {
+    if (window.confirm("Are you sure you want to delete this meal log?")) {
+      setLogs(prev => prev.filter(log => log.id !== logId));
+    }
+  };
+
   const handleUpdateWeight = (newWeight: number) => {
     if (!profile) return;
     
@@ -225,6 +231,7 @@ const App: React.FC = () => {
             onUpdateWeight={() => setShowWeightInput(true)}
             onReset={handleResetProfile}
             onSwitchUser={handleLogout}
+            onDeleteLog={handleDeleteLog}
           />
 
           {showLogger && (

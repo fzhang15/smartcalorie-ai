@@ -1,20 +1,76 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# SmartCalorie AI 🍽️
 
-# Run and deploy your AI Studio app
+A smart calorie tracking app powered by Google Gemini AI. Take a photo of your food and get instant nutritional analysis.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1lal3yQa4Gm1tbTzRluHQFoTW5tnCqqzs
+### 📸 AI-Powered Food Recognition
+- Take a photo of your meal and let Gemini AI analyze it
+- Automatic detection of food items with calorie and macro estimates
+- Supports breakfast, lunch, dinner, and snacks
+
+### ⏱️ Time-Based Calorie Tracking
+- Real-time calorie burn calculation based on time of day
+- Shows net calories (eaten - burned) for better tracking
+- Visual progress bars for both intake and burn
+
+### 🗑️ Meal Management
+- Delete any logged meal with a single tap
+- View meal history by date
+- Navigate between days to review past meals
+
+### 👥 Multi-User Support
+- Create multiple user profiles
+- Each user has their own data and settings
+- Easy profile switching
+
+### 📊 Nutritional Insights
+- Track protein, carbs, and fat intake
+- Daily weight impact prediction
+- BMR and TDEE calculation based on your profile
+
+## Tech Stack
+
+- **Frontend:** React + TypeScript
+- **Styling:** Tailwind CSS
+- **AI:** Google Gemini API
+- **Build Tool:** Vite
+- **Charts:** Recharts
+- **Icons:** Lucide React
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js
 
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/fzhang15/smartcalorie-ai.git
+   cd smartcalorie-ai
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file and add your Gemini API key:
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+4. Run the app:
+   ```bash
+   npm run dev
+   ```
+
+5. Open http://localhost:3000 in your browser
+
+## Deployment
+
+This app is deployed on Vercel. Any push to the `main` branch will trigger automatic deployment.
+
+**Live Demo:** [Coming Soon]
+
+## License
+
+MIT
