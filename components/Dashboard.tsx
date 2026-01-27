@@ -155,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     // Empty cells before first day
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="w-10 h-12"></div>);
+      days.push(<div key={`empty-${i}`} className="w-11 h-12"></div>);
     }
 
     // Days of the month
@@ -171,9 +171,9 @@ const Dashboard: React.FC<DashboardProps> = ({
           key={day}
           onClick={() => !isFuture && selectDate(date)}
           disabled={isFuture}
-          className="w-10 h-12 flex flex-col items-center justify-center"
+          className="w-11 h-12 flex flex-col items-center justify-center"
         >
-          <span className={`w-10 h-10 rounded-full text-sm font-medium transition-all flex items-center justify-center
+          <span className={`w-11 h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center
             ${isSelected 
               ? 'bg-brand-500 text-white' 
               : isTodayDate 
@@ -195,7 +195,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (
       <div 
         ref={calendarRef}
-        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 p-5 z-50 animate-in fade-in zoom-in-95 duration-200"
+        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 p-6 z-50 animate-in fade-in zoom-in-95 duration-200 min-w-[340px]"
       >
         {/* Month/Year Header */}
         <div className="flex items-center justify-between mb-4">
@@ -219,7 +219,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* Day labels */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {dayLabels.map(label => (
-            <div key={label} className="w-10 h-8 flex items-center justify-center text-xs font-medium text-gray-400">
+            <div key={label} className="w-11 h-8 flex items-center justify-center text-xs font-medium text-gray-400">
               {label}
             </div>
           ))}

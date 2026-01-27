@@ -66,13 +66,18 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Navigate between days with arrow controls
 - **Calendar picker popup** - tap the date to open a full calendar view
   - Month/year navigation
-  - Touch-friendly large date buttons
+  - Touch-friendly large date buttons (44px touch targets)
   - Visual highlighting of selected date and today
   - **Green dot indicators** for dates with logged meals or exercises
   - Future dates disabled
   - "Go to Today" quick action
   - Click outside to dismiss
 - Quick "Today" button to return to current date
+
+### 📊 Impact History Modal
+- Tap "Daily Impact" card to view historical weight trends
+- Click anywhere outside the modal to dismiss
+- View daily, weekly, and monthly aggregated data
 
 ### 🗑️ Meal & Exercise Management
 - Delete any logged meal or exercise with a single tap
@@ -161,4 +166,6 @@ https://smartcalorie-ai.vercel.app/
 
 ## License
 
-MIT
+CC BY-NC-ND 4.0 (Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International)
+
+See [LICENSE](LICENSE) for details.
