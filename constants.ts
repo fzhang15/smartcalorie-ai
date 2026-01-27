@@ -1,4 +1,4 @@
-import { ActivityLevel } from './types';
+import { ActivityLevel, ExerciseType } from './types';
 
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   [ActivityLevel.Sedentary]: 1.2,
@@ -10,10 +10,21 @@ export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
 
 export const CALORIES_PER_KG_FAT = 7700;
 
-export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
-  [ActivityLevel.Sedentary]: 'Sedentary (Little to no exercise)',
-  [ActivityLevel.Light]: 'Lightly Active (1-3 days/week)',
-  [ActivityLevel.Moderate]: 'Moderately Active (3-5 days/week)',
-  [ActivityLevel.Active]: 'Active (6-7 days/week)',
-  [ActivityLevel.VeryActive]: 'Very Active (Physical job or 2x/day)',
+// Calories burned per minute for each exercise type (approximate for 70kg person)
+export const EXERCISE_CALORIES_PER_MIN: Record<ExerciseType, number> = {
+  walking: 4,      // ~240 cal/hr
+  running: 11,     // ~660 cal/hr
+  elliptical: 8,   // ~480 cal/hr
+  cycling: 7,      // ~420 cal/hr
+  swimming: 9,     // ~540 cal/hr
+  strength: 5,     // ~300 cal/hr
+};
+
+export const EXERCISE_LABELS: Record<ExerciseType, string> = {
+  walking: 'Walking',
+  running: 'Running',
+  elliptical: 'Elliptical',
+  cycling: 'Cycling',
+  swimming: 'Swimming',
+  strength: 'Strength Training',
 };

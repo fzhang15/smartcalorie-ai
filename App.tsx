@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, MealLog, UserSummary } from './types';
+import { UserProfile, MealLog, UserSummary, ExerciseLog, ActivityLevel } from './types';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import MealLogger from './components/MealLogger';
 import WeightInput from './components/WeightInput';
 import UserSelector from './components/UserSelector';
+import ExerciseLogger from './components/ExerciseLogger';
 import { ACTIVITY_MULTIPLIERS } from './constants';
 
 const COLORS = [
@@ -22,11 +23,13 @@ const App: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [logs, setLogs] = useState<MealLog[]>([]);
+  const [exerciseLogs, setExerciseLogs] = useState<ExerciseLog[]>([]);
   
   // UI State
   const [view, setView] = useState<'loading' | 'user-select' | 'onboarding' | 'dashboard'>('loading');
   const [showLogger, setShowLogger] = useState(false);
   const [showWeightInput, setShowWeightInput] = useState(false);
+  const [showExerciseLogger, setShowExerciseLogger] = useState(false);
 
   // Initial Data Load & Migration Logic
   useEffect(() => {
@@ -37,7 +40,10 @@ const App: React.FC = () => {
         // Multi-user system exists
         const parsedUsers = JSON.parse(storedUsers);
         setUsers(parsedUsers);
-        if (parsedUsers.length > 0) {
+        if (parsedUsers.length === 1) {
+          // Single user: auto-login, skip user selection screen
+          setCurrentUserId(parsedUsers[0].id);
+        } else if (parsedUsers.length > 1) {
           setView('user-select');
         } else {
           setView('onboarding');
@@ -85,15 +91,50 @@ const App: React.FC = () => {
     try {
       const storedProfile = localStorage.getItem(`smartcalorie_profile_${currentUserId}`);
       const storedLogs = localStorage.getItem(`smartcalorie_logs_${currentUserId}`);
+      const storedExerciseLogs = localStorage.getItem(`smartcalorie_exercise_${currentUserId}`);
 
       if (storedProfile) {
-        setProfile(JSON.parse(storedProfile));
+        let parsedProfile: UserProfile = JSON.parse(storedProfile);
+        let needsSave = false;
+        
+        // Migration: Add lastWeightUpdate if missing
+        if (!parsedProfile.lastWeightUpdate) {
+          parsedProfile.lastWeightUpdate = Date.now();
+          needsSave = true;
+        }
+        
+        // Migration: Reset activityLevel to Sedentary if different (exercise now tracked separately)
+        if (parsedProfile.activityLevel !== ActivityLevel.Sedentary) {
+          parsedProfile.activityLevel = ActivityLevel.Sedentary;
+          // Recalculate BMR/TDEE with Sedentary multiplier
+          let newBmr = (10 * parsedProfile.weight) + (6.25 * parsedProfile.height) - (5 * parsedProfile.age);
+          if (parsedProfile.gender === 'male') {
+            newBmr += 5;
+          } else {
+            newBmr -= 161;
+          }
+          parsedProfile.bmr = Math.round(newBmr);
+          parsedProfile.tdee = Math.round(newBmr * ACTIVITY_MULTIPLIERS[ActivityLevel.Sedentary]);
+          needsSave = true;
+        }
+        
+        // Save migrated profile if needed
+        if (needsSave) {
+          localStorage.setItem(`smartcalorie_profile_${currentUserId}`, JSON.stringify(parsedProfile));
+        }
+        
+        setProfile(parsedProfile);
         setView('dashboard');
       }
       if (storedLogs) {
         setLogs(JSON.parse(storedLogs));
       } else {
         setLogs([]);
+      }
+      if (storedExerciseLogs) {
+        setExerciseLogs(JSON.parse(storedExerciseLogs));
+      } else {
+        setExerciseLogs([]);
       }
     } catch (e) {
       console.error("Failed to load user data", e);
@@ -112,6 +153,12 @@ const App: React.FC = () => {
       localStorage.setItem(`smartcalorie_logs_${currentUserId}`, JSON.stringify(logs));
     }
   }, [logs, currentUserId]);
+
+  useEffect(() => {
+    if (currentUserId) {
+      localStorage.setItem(`smartcalorie_exercise_${currentUserId}`, JSON.stringify(exerciseLogs));
+    }
+  }, [exerciseLogs, currentUserId]);
 
 
   // Actions
@@ -133,6 +180,7 @@ const App: React.FC = () => {
     setCurrentUserId(newId);
     setProfile(newProfile);
     setLogs([]);
+    setExerciseLogs([]);
     setView('dashboard');
   };
 
@@ -140,9 +188,19 @@ const App: React.FC = () => {
     setLogs(prev => [...prev, log]);
   };
 
+  const handleLogExercise = (log: ExerciseLog) => {
+    setExerciseLogs(prev => [...prev, log]);
+  };
+
   const handleDeleteLog = (logId: string) => {
     if (window.confirm("Are you sure you want to delete this meal log?")) {
       setLogs(prev => prev.filter(log => log.id !== logId));
+    }
+  };
+
+  const handleDeleteExerciseLog = (logId: string) => {
+    if (window.confirm("Are you sure you want to delete this exercise log?")) {
+      setExerciseLogs(prev => prev.filter(log => log.id !== logId));
     }
   };
 
@@ -162,7 +220,8 @@ const App: React.FC = () => {
       ...profile,
       weight: newWeight,
       bmr: Math.round(newBmr),
-      tdee: Math.round(newTdee)
+      tdee: Math.round(newTdee),
+      lastWeightUpdate: Date.now(), // Reset weight prediction baseline
     });
   };
 
@@ -172,6 +231,7 @@ const App: React.FC = () => {
         // Remove data
         localStorage.removeItem(`smartcalorie_profile_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_logs_${currentUserId}`);
+        localStorage.removeItem(`smartcalorie_exercise_${currentUserId}`);
         
         // Remove from users list
         const updatedUsers = users.filter(u => u.id !== currentUserId);
@@ -180,20 +240,12 @@ const App: React.FC = () => {
         
         setCurrentUserId(null);
         setProfile(null);
+        setLogs([]);
+        setExerciseLogs([]);
         
-        if (updatedUsers.length > 0) {
-            setView('user-select');
-        } else {
-            setView('onboarding');
-        }
+        // After deletion, redirect to onboarding
+        setView('onboarding');
     }
-  };
-
-  const handleLogout = () => {
-      setCurrentUserId(null);
-      setProfile(null);
-      setLogs([]);
-      setView('user-select');
   };
 
   // Views
@@ -227,17 +279,26 @@ const App: React.FC = () => {
           <Dashboard
             profile={profile}
             logs={logs}
+            exerciseLogs={exerciseLogs}
             onOpenLogger={() => setShowLogger(true)}
+            onOpenExerciseLogger={() => setShowExerciseLogger(true)}
             onUpdateWeight={() => setShowWeightInput(true)}
             onReset={handleResetProfile}
-            onSwitchUser={handleLogout}
             onDeleteLog={handleDeleteLog}
+            onDeleteExerciseLog={handleDeleteExerciseLog}
           />
 
           {showLogger && (
             <MealLogger
               onLogMeal={handleLogMeal}
               onClose={() => setShowLogger(false)}
+            />
+          )}
+
+          {showExerciseLogger && (
+            <ExerciseLogger
+              onLogExercise={handleLogExercise}
+              onClose={() => setShowExerciseLogger(false)}
             />
           )}
 

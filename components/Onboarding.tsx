@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile, Gender, ActivityLevel } from '../types';
-import { ACTIVITY_LABELS, ACTIVITY_MULTIPLIERS } from '../constants';
-import { Activity, User, Ruler, Weight, ArrowRight, ChevronLeft } from 'lucide-react';
+import { ACTIVITY_MULTIPLIERS } from '../constants';
+import { User, Ruler, ArrowRight, ChevronLeft } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: (profile: Omit<UserProfile, 'id' | 'avatarColor'>) => void;
@@ -12,7 +12,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Partial<UserProfile>>({
     gender: 'male',
-    activityLevel: ActivityLevel.Sedentary,
+    activityLevel: ActivityLevel.Sedentary, // Default to sedentary, exercise tracked separately
   });
 
   const calculateStats = (data: Partial<UserProfile>): { bmr: number; tdee: number } => {
@@ -32,13 +32,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
   };
 
   const handleNext = () => {
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1);
     } else {
       const stats = calculateStats(formData);
       onComplete({
         ...formData as UserProfile,
         ...stats,
+        lastWeightUpdate: Date.now(), // Initial weight update timestamp
       });
     }
   };
@@ -62,7 +63,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
             <div className="flex gap-2 mt-4">
                 <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
                 <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
-                <div className={`h-1 flex-1 rounded-full ${step >= 3 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
             </div>
         </div>
 
@@ -139,27 +139,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
           </div>
         )}
 
-        {step === 3 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right duration-300">
-             <h2 className="text-xl font-semibold flex items-center gap-2"><Activity size={20}/> Activity Level</h2>
-            <div className="space-y-2">
-              {Object.entries(ACTIVITY_LABELS).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => handleChange('activityLevel', key as ActivityLevel)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    formData.activityLevel === key
-                      ? 'bg-brand-50 text-brand-700 border-brand-500 ring-1 ring-brand-500'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <button
           onClick={handleNext}
           disabled={
@@ -168,7 +147,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
           }
           className="w-full mt-8 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {step === 3 ? 'Finish Setup' : 'Next'} <ArrowRight size={18} />
+          {step === 2 ? 'Finish Setup' : 'Next'} <ArrowRight size={18} />
         </button>
       </div>
     </div>

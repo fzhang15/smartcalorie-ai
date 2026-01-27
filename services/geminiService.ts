@@ -51,7 +51,14 @@ export const analyzeFoodImage = async (base64Image: string): Promise<FoodItem[]>
     if (!text) return [];
 
     const items = JSON.parse(text) as FoodItem[];
-    return items;
+    // Round values to integers to avoid displaying long decimals like 20.00007g
+    return items.map(item => ({
+      ...item,
+      calories: Math.round(item.calories),
+      protein: Math.round(item.protein),
+      carbs: Math.round(item.carbs),
+      fat: Math.round(item.fat),
+    }));
   } catch (error) {
     console.error("Error analyzing food:", error);
     throw error;

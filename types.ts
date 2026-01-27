@@ -14,11 +14,12 @@ export interface UserProfile {
   age: number;
   gender: Gender;
   height: number; // cm
-  weight: number; // kg
+  weight: number; // kg (last manually updated weight)
   activityLevel: ActivityLevel;
   bmr: number;
   tdee: number;
   avatarColor?: string; // For UI
+  lastWeightUpdate: number; // timestamp of last manual weight update
 }
 
 export interface UserSummary {
@@ -48,4 +49,14 @@ export interface DailyStats {
   date: string; // YYYY-MM-DD
   totalCaloriesIn: number;
   netWeightChange: number; // estimated kg change
+}
+
+export type ExerciseType = 'walking' | 'running' | 'elliptical' | 'cycling' | 'swimming' | 'strength';
+
+export interface ExerciseLog {
+  id: string;
+  timestamp: number;
+  type: ExerciseType;
+  durationMinutes: number;
+  caloriesBurned: number;
 }
