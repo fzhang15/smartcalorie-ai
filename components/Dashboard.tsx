@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { UserProfile, MealLog, ExerciseLog, DailyImpactRecord } from '../types';
 import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs } from '../constants';
 import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3 } from 'lucide-react';
@@ -40,6 +40,25 @@ const Dashboard: React.FC<DashboardProps> = ({
   
   // State for impact history modal
   const [showImpactHistory, setShowImpactHistory] = useState(false);
+  
+  // State for calendar picker
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Close calendar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setShowCalendar(false);
+      }
+    };
+    
+    if (showCalendar) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCalendar]);
 
   // Update current time every minute for real-time calorie burn calculation
   useEffect(() => {
@@ -77,6 +96,133 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const resetToToday = () => setViewDate(new Date());
+
+  const selectDate = (date: Date) => {
+    setViewDate(date);
+    setShowCalendar(false);
+  };
+
+  const openCalendar = () => {
+    setCalendarMonth(new Date(viewDate));
+    setShowCalendar(true);
+  };
+
+  // Calendar helper functions
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const isSameDay = (d1: Date, d2: Date) => {
+    return d1.getDate() === d2.getDate() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getFullYear() === d2.getFullYear();
+  };
+
+  const isFutureDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return date > today;
+  };
+
+  const navigateMonth = (direction: number) => {
+    const newMonth = new Date(calendarMonth);
+    newMonth.setMonth(calendarMonth.getMonth() + direction);
+    setCalendarMonth(newMonth);
+  };
+
+  const renderCalendar = () => {
+    const daysInMonth = getDaysInMonth(calendarMonth);
+    const firstDay = getFirstDayOfMonth(calendarMonth);
+    const today = new Date();
+    const days = [];
+    const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
+    }
+
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+      const isSelected = isSameDay(date, viewDate);
+      const isTodayDate = isSameDay(date, today);
+      const isFuture = isFutureDate(date);
+
+      days.push(
+        <button
+          key={day}
+          onClick={() => !isFuture && selectDate(date)}
+          disabled={isFuture}
+          className={`w-8 h-8 rounded-full text-sm font-medium transition-all
+            ${isSelected 
+              ? 'bg-brand-500 text-white' 
+              : isTodayDate 
+                ? 'bg-brand-100 text-brand-600 font-bold' 
+                : isFuture 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-gray-700 hover:bg-gray-100'
+            }`}
+        >
+          {day}
+        </button>
+      );
+    }
+
+    return (
+      <div 
+        ref={calendarRef}
+        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50 animate-in fade-in zoom-in-95 duration-200"
+      >
+        {/* Month/Year Header */}
+        <div className="flex items-center justify-between mb-3">
+          <button 
+            onClick={() => navigateMonth(-1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="font-semibold text-gray-800">
+            {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </span>
+          <button 
+            onClick={() => navigateMonth(1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        {/* Day labels */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {dayLabels.map(label => (
+            <div key={label} className="w-8 h-6 flex items-center justify-center text-xs font-medium text-gray-400">
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {days}
+        </div>
+
+        {/* Quick actions */}
+        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-center">
+          <button
+            onClick={() => selectDate(new Date())}
+            className="px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
+          >
+            Go to Today
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // Filter meal logs based on the viewed date
   const displayedMealLogs = logs.filter(log => {
@@ -227,14 +373,18 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Date Navigator */}
-        <div className="flex items-center justify-between mb-4 bg-gray-50 p-1 rounded-xl">
+        <div className="flex items-center justify-between mb-4 bg-gray-50 p-1 rounded-xl relative">
             <button onClick={() => navigateDate(-1)} className="p-2 text-gray-500 hover:bg-white hover:text-brand-600 rounded-lg transition-all">
                 <ChevronLeft size={20} />
             </button>
-            <div className="flex items-center gap-2 font-semibold text-gray-700">
+            <button 
+              onClick={openCalendar}
+              className="flex items-center gap-2 font-semibold text-gray-700 hover:bg-white px-3 py-1.5 rounded-lg transition-all"
+            >
                 <Calendar size={16} className="text-brand-500"/>
                 {isToday(viewDate) ? "Today" : formattedDate}
-            </div>
+            </button>
+            {showCalendar && renderCalendar()}
             <div className="flex gap-1">
                 {!isToday(viewDate) && (
                     <button onClick={resetToToday} className="px-3 py-1 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100">

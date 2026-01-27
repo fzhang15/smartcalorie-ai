@@ -63,7 +63,13 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 
 ### 📅 Date Navigation
 - View meal and exercise history by date
-- Navigate between days with intuitive controls
+- Navigate between days with arrow controls
+- **Calendar picker popup** - tap the date to open a full calendar view
+  - Month/year navigation
+  - Visual highlighting of selected date and today
+  - Future dates disabled
+  - "Go to Today" quick action
+  - Click outside to dismiss
 - Quick "Today" button to return to current date
 
 ### 🗑️ Meal & Exercise Management
