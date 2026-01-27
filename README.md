@@ -66,7 +66,9 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Navigate between days with arrow controls
 - **Calendar picker popup** - tap the date to open a full calendar view
   - Month/year navigation
+  - Touch-friendly large date buttons
   - Visual highlighting of selected date and today
+  - **Green dot indicators** for dates with logged meals or exercises
   - Future dates disabled
   - "Go to Today" quick action
   - Click outside to dismiss

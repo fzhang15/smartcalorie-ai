@@ -128,6 +128,18 @@ const Dashboard: React.FC<DashboardProps> = ({
     return date > today;
   };
 
+  const hasLogsOnDate = (date: Date) => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    const hasMealLogs = logs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
+    const hasExerciseLogs = exerciseLogs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
+    
+    return hasMealLogs || hasExerciseLogs;
+  };
+
   const navigateMonth = (direction: number) => {
     const newMonth = new Date(calendarMonth);
     newMonth.setMonth(calendarMonth.getMonth() + direction);
@@ -143,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     // Empty cells before first day
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
+      days.push(<div key={`empty-${i}`} className="w-10 h-12"></div>);
     }
 
     // Days of the month
@@ -152,13 +164,16 @@ const Dashboard: React.FC<DashboardProps> = ({
       const isSelected = isSameDay(date, viewDate);
       const isTodayDate = isSameDay(date, today);
       const isFuture = isFutureDate(date);
+      const hasLogs = hasLogsOnDate(date);
 
       days.push(
         <button
           key={day}
           onClick={() => !isFuture && selectDate(date)}
           disabled={isFuture}
-          className={`w-8 h-8 rounded-full text-sm font-medium transition-all
+          className="w-10 h-12 flex flex-col items-center justify-center"
+        >
+          <span className={`w-10 h-10 rounded-full text-sm font-medium transition-all flex items-center justify-center
             ${isSelected 
               ? 'bg-brand-500 text-white' 
               : isTodayDate 
@@ -167,8 +182,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                   ? 'text-gray-300 cursor-not-allowed' 
                   : 'text-gray-700 hover:bg-gray-100'
             }`}
-        >
-          {day}
+          >
+            {day}
+          </span>
+          {hasLogs && !isFuture && (
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 -mt-1"></span>
+          )}
         </button>
       );
     }
@@ -176,31 +195,31 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (
       <div 
         ref={calendarRef}
-        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50 animate-in fade-in zoom-in-95 duration-200"
+        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 p-5 z-50 animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Month/Year Header */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <button 
             onClick={() => navigateMonth(-1)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={20} />
           </button>
-          <span className="font-semibold text-gray-800">
+          <span className="font-semibold text-gray-800 text-base">
             {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
           <button 
             onClick={() => navigateMonth(1)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={20} />
           </button>
         </div>
 
         {/* Day labels */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {dayLabels.map(label => (
-            <div key={label} className="w-8 h-6 flex items-center justify-center text-xs font-medium text-gray-400">
+            <div key={label} className="w-10 h-8 flex items-center justify-center text-xs font-medium text-gray-400">
               {label}
             </div>
           ))}
@@ -212,10 +231,10 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Quick actions */}
-        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-center">
+        <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">
           <button
             onClick={() => selectDate(new Date())}
-            className="px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
           >
             Go to Today
           </button>
