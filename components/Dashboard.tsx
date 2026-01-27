@@ -44,21 +44,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-reset viewDate to today when the calendar day changes (for users who keep app open overnight)
-  useEffect(() => {
-    const now = new Date();
-    const viewDateStr = viewDate.toDateString();
-    const nowStr = now.toDateString();
-    
-    if (viewDateStr !== nowStr) {
-      // Check if viewDate was "yesterday" (meaning it was today when user opened the app)
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      if (viewDate.toDateString() === yesterday.toDateString()) {
-        setViewDate(now); // Auto-update to the new today
-      }
-    }
-  }, [currentTime, viewDate]);
 
   // Helper function to check if a date is today
   const isToday = (date: Date) => {
@@ -164,13 +149,36 @@ const Dashboard: React.FC<DashboardProps> = ({
         .filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime())
         .reduce((acc, log) => acc + log.caloriesBurned, 0);
       
+      // Check if this day is the first day (same date as lastWeightUpdate)
+      const lastUpdateDate = new Date(lastUpdate);
+      const isFirstDay = current.getDate() === lastUpdateDate.getDate() &&
+                         current.getMonth() === lastUpdateDate.getMonth() &&
+                         current.getFullYear() === lastUpdateDate.getFullYear();
+
       // Check if this is today (partial day)
       const isCurrentDay = current.getDate() === new Date().getDate() &&
                           current.getMonth() === new Date().getMonth() &&
                           current.getFullYear() === new Date().getFullYear();
       
-      // For today, use time-proportional BMR; for past days, use full BMR
-      const bmrBurned = isCurrentDay ? getTimeBasedBMR() : profile.bmr;
+      // Calculate BMR burned for this day
+      let bmrBurned: number;
+      if (isFirstDay && isCurrentDay) {
+        // Same day as registration/weight update AND today: BMR from update time to now
+        const hoursElapsed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
+        bmrBurned = Math.round((profile.bmr / 24) * Math.max(0, hoursElapsed));
+      } else if (isFirstDay) {
+        // First day but not today: BMR from update time to end of day
+        const endOfFirstDay = new Date(lastUpdate);
+        endOfFirstDay.setHours(23, 59, 59, 999);
+        const hoursElapsed = (endOfFirstDay.getTime() - lastUpdate) / (1000 * 60 * 60);
+        bmrBurned = Math.round((profile.bmr / 24) * hoursElapsed);
+      } else if (isCurrentDay) {
+        // Today but not first day: BMR from midnight to now
+        bmrBurned = getTimeBasedBMR();
+      } else {
+        // Full past day
+        bmrBurned = profile.bmr;
+      }
       
       // Net calories for the day
       const netDayCalories = dayMealCalories - bmrBurned - dayExerciseCalories;
