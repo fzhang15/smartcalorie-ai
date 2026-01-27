@@ -59,12 +59,15 @@ const Dashboard: React.FC<DashboardProps> = ({
            date.getFullYear() === today.getFullYear();
   };
 
+  // Get effective BMR (adjusted by calibration factor)
+  const effectiveBmr = Math.round(profile.bmr * (profile.calibrationFactor || 1.0));
+
   // Calculate time-based BMR burn (proportional to time of day)
   const getTimeBasedBMR = () => {
     const hours = currentTime.getHours();
     const minutes = currentTime.getMinutes();
     const dayProgress = (hours + minutes / 60) / 24;
-    return Math.round(profile.bmr * dayProgress);
+    return Math.round(effectiveBmr * dayProgress);
   };
 
   const navigateDate = (days: number) => {
@@ -95,11 +98,11 @@ const Dashboard: React.FC<DashboardProps> = ({
   const exerciseCaloriesBurned = displayedExerciseLogs.reduce((acc, log) => acc + log.caloriesBurned, 0);
 
   // Calculate total calories burned: BMR (time-based for today) + Exercise
-  const bmrBurnedSoFar = isToday(viewDate) ? getTimeBasedBMR() : profile.bmr;
+  const bmrBurnedSoFar = isToday(viewDate) ? getTimeBasedBMR() : effectiveBmr;
   const totalCaloriesBurned = bmrBurnedSoFar + exerciseCaloriesBurned;
 
-  // Daily target is BMR + exercise (not TDEE since we track exercise separately)
-  const dailyTarget = profile.bmr;
+  // Daily target is effective BMR + exercise (not TDEE since we track exercise separately)
+  const dailyTarget = effectiveBmr;
 
   const totalCaloriesIn = displayedMealLogs.reduce((acc, log) => acc + log.totalCalories, 0);
   const netCalories = totalCaloriesIn - (isToday(viewDate) ? totalCaloriesBurned : profile.bmr + exerciseCaloriesBurned);
@@ -166,24 +169,24 @@ const Dashboard: React.FC<DashboardProps> = ({
                           current.getMonth() === new Date().getMonth() &&
                           current.getFullYear() === new Date().getFullYear();
       
-      // Calculate BMR burned for this day
+      // Calculate BMR burned for this day (using effective BMR)
       let bmrBurned: number;
       if (isFirstDay && isCurrentDay) {
         // Same day as registration/weight update AND today: BMR from update time to now
         const hoursElapsed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
-        bmrBurned = Math.round((profile.bmr / 24) * Math.max(0, hoursElapsed));
+        bmrBurned = Math.round((effectiveBmr / 24) * Math.max(0, hoursElapsed));
       } else if (isFirstDay) {
         // First day but not today: BMR from update time to end of day
         const endOfFirstDay = new Date(lastUpdate);
         endOfFirstDay.setHours(23, 59, 59, 999);
         const hoursElapsed = (endOfFirstDay.getTime() - lastUpdate) / (1000 * 60 * 60);
-        bmrBurned = Math.round((profile.bmr / 24) * hoursElapsed);
+        bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
       } else if (isCurrentDay) {
         // Today but not first day: BMR from midnight to now
         bmrBurned = getTimeBasedBMR();
       } else {
         // Full past day
-        bmrBurned = profile.bmr;
+        bmrBurned = effectiveBmr;
       }
       
       // Net calories for the day
@@ -272,8 +275,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                     )}
                 </div>
                 <div className="text-right">
-                    <p className="text-gray-400 text-xs mb-1">BMR</p>
-                    <p className="font-semibold">{profile.bmr} kcal</p>
+                    <p className="text-gray-400 text-xs mb-1">Effective BMR</p>
+                    <p className="font-semibold">{effectiveBmr} kcal</p>
+                    {profile.calibrationFactor && profile.calibrationFactor !== 1.0 && (
+                      <p className="text-[10px] text-gray-500">
+                        ({(profile.calibrationFactor * 100).toFixed(0)}% of {profile.bmr})
+                      </p>
+                    )}
                 </div>
             </div>
             

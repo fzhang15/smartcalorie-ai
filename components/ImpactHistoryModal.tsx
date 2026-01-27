@@ -43,13 +43,16 @@ const ImpactHistoryModal: React.FC<ImpactHistoryModalProps> = ({
            date.getFullYear() === today.getFullYear();
   };
 
+  // Get effective BMR (adjusted by calibration factor)
+  const effectiveBmr = Math.round(profile.bmr * (profile.calibrationFactor || 1.0));
+
   // Calculate time-based BMR burn (proportional to time of day)
   const getTimeBasedBMR = (): number => {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const dayProgress = (hours + minutes / 60) / 24;
-    return Math.round(profile.bmr * dayProgress);
+    return Math.round(effectiveBmr * dayProgress);
   };
 
   // Calculate today's live impact value

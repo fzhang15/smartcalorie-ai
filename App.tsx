@@ -136,6 +136,12 @@ const App: React.FC = () => {
           needsSave = true;
         }
         
+        // Migration: Add calibrationFactor if missing
+        if (parsedProfile.calibrationFactor === undefined) {
+          parsedProfile.calibrationFactor = 1.0;
+          needsSave = true;
+        }
+        
         // Auto-increment age on January 1st each year
         const currentYear = new Date().getFullYear();
         if (parsedProfile.ageLastUpdatedYear < currentYear) {
@@ -345,6 +351,112 @@ const App: React.FC = () => {
   const handleUpdateWeight = (newWeight: number) => {
     if (!profile) return;
     
+    const previousWeight = profile.weight;
+    const actualChange = newWeight - previousWeight;
+    
+    // Calculate predicted weight change since last update
+    const lastUpdate = profile.lastWeightUpdate || Date.now();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculate cumulative predicted impact since last weight update
+    let predictedChange = 0;
+    const startOfUpdateDay = new Date(lastUpdate);
+    startOfUpdateDay.setHours(0, 0, 0, 0);
+    
+    const current = new Date(startOfUpdateDay);
+    const effectiveBmr = profile.bmr * (profile.calibrationFactor || 1.0);
+    
+    // Get impact records for the period
+    const recordsInPeriod: { date: string; impact: number }[] = [];
+    
+    while (current <= today) {
+      const dateKey = formatDateKey(current);
+      const dayStart = new Date(current);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(current);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const dayMealCalories = logs
+        .filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime())
+        .reduce((acc, log) => acc + log.totalCalories, 0);
+      
+      const dayExerciseCalories = exerciseLogs
+        .filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime())
+        .reduce((acc, log) => acc + log.caloriesBurned, 0);
+      
+      // Check if this day has any logs
+      const hasLogs = logs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime()) ||
+                      exerciseLogs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
+      
+      if (hasLogs) {
+        // Calculate BMR for this day
+        let bmrBurned: number;
+        const lastUpdateDate = new Date(lastUpdate);
+        const isFirstDay = current.getDate() === lastUpdateDate.getDate() &&
+                           current.getMonth() === lastUpdateDate.getMonth() &&
+                           current.getFullYear() === lastUpdateDate.getFullYear();
+        const isToday = current.getDate() === new Date().getDate() &&
+                       current.getMonth() === new Date().getMonth() &&
+                       current.getFullYear() === new Date().getFullYear();
+        
+        if (isFirstDay && isToday) {
+          const hoursElapsed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
+          bmrBurned = Math.round((effectiveBmr / 24) * Math.max(0, hoursElapsed));
+        } else if (isFirstDay) {
+          const endOfFirstDay = new Date(lastUpdate);
+          endOfFirstDay.setHours(23, 59, 59, 999);
+          const hoursElapsed = (endOfFirstDay.getTime() - lastUpdate) / (1000 * 60 * 60);
+          bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
+        } else if (isToday) {
+          const now = new Date();
+          const dayProgress = (now.getHours() + now.getMinutes() / 60) / 24;
+          bmrBurned = Math.round(effectiveBmr * dayProgress);
+        } else {
+          bmrBurned = effectiveBmr;
+        }
+        
+        const dayImpact = (dayMealCalories - bmrBurned - dayExerciseCalories) / CALORIES_PER_KG_FAT;
+        predictedChange += dayImpact;
+        recordsInPeriod.push({ date: dateKey, impact: dayImpact });
+      }
+      
+      current.setDate(current.getDate() + 1);
+    }
+    
+    // Calculate calibration error
+    const predictionError = predictedChange - actualChange; // Positive = overpredicted weight gain
+    
+    // Update calibration factor with exponential smoothing
+    let newCalibrationFactor = profile.calibrationFactor || 1.0;
+    if (Math.abs(predictedChange) > 0.001) {
+      const thisMeasurementFactor = actualChange / predictedChange;
+      // Clamp to reasonable range (0.5 to 1.5)
+      const clampedFactor = Math.max(0.5, Math.min(1.5, thisMeasurementFactor));
+      // Exponential smoothing: 70% old, 30% new
+      newCalibrationFactor = 0.7 * newCalibrationFactor + 0.3 * clampedFactor;
+    }
+    
+    // Correct historical impact records
+    if (recordsInPeriod.length > 0 && Math.abs(predictionError) > 0.001) {
+      const correctionPerDay = predictionError / recordsInPeriod.length;
+      
+      setImpactHistory(prev => {
+        const updated = prev.map(record => {
+          const recordInPeriod = recordsInPeriod.find(r => r.date === record.date);
+          if (recordInPeriod) {
+            // Subtract the correction (if we overpredicted, reduce the impact)
+            return {
+              ...record,
+              impactKg: record.impactKg - correctionPerDay,
+            };
+          }
+          return record;
+        });
+        return updated;
+      });
+    }
+    
     // Recalculate BMR/TDEE
     let newBmr = (10 * newWeight) + (6.25 * profile.height) - (5 * profile.age);
     if (profile.gender === 'male') {
@@ -359,7 +471,20 @@ const App: React.FC = () => {
       weight: newWeight,
       bmr: Math.round(newBmr),
       tdee: Math.round(newTdee),
-      lastWeightUpdate: Date.now(), // Reset weight prediction baseline
+      lastWeightUpdate: Date.now(),
+      calibrationFactor: newCalibrationFactor,
+    });
+    
+    // Log calibration info for debugging
+    console.log('Weight Calibration:', {
+      previousWeight,
+      newWeight,
+      actualChange,
+      predictedChange,
+      predictionError,
+      oldCalibrationFactor: profile.calibrationFactor,
+      newCalibrationFactor,
+      daysAffected: recordsInPeriod.length,
     });
   };
 

@@ -25,6 +25,7 @@ export interface UserProfile {
   lastWeightUpdate: number; // timestamp of last manual weight update
   ageLastUpdatedYear: number; // Year when age was last updated (for auto-increment)
   dailyExerciseGoal: number; // Daily exercise calorie burn goal (default 300)
+  calibrationFactor: number; // Adjustment factor for BMR accuracy (default 1.0, learned from weight updates)
 }
 
 export interface UserSummary {
