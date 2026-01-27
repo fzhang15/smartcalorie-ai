@@ -303,7 +303,11 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <p className="text-xs text-gray-400 font-medium">Daily Impact</p>
             <p className={`text-lg font-bold ${predictedWeightChange > 0 ? 'text-gray-800' : 'text-gray-800'}`}>
-                {predictedWeightChange > 0 ? '+' : ''}{predictedWeightChange.toFixed(3)} <span className="text-sm font-normal text-gray-500">kg</span>
+                {predictedWeightChange > 0 ? '+' : ''}
+                {profile.weightUnit === 'lbs' 
+                  ? kgToLbs(predictedWeightChange).toFixed(3)
+                  : predictedWeightChange.toFixed(3)
+                } <span className="text-sm font-normal text-gray-500">{profile.weightUnit || 'kg'}</span>
             </p>
         </div>
 
