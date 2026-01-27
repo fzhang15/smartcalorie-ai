@@ -44,6 +44,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-reset viewDate to today when the calendar day changes (for users who keep app open overnight)
+  useEffect(() => {
+    const now = new Date();
+    const viewDateStr = viewDate.toDateString();
+    const nowStr = now.toDateString();
+    
+    if (viewDateStr !== nowStr) {
+      // Check if viewDate was "yesterday" (meaning it was today when user opened the app)
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (viewDate.toDateString() === yesterday.toDateString()) {
+        setViewDate(now); // Auto-update to the new today
+      }
+    }
+  }, [currentTime, viewDate]);
+
   // Helper function to check if a date is today
   const isToday = (date: Date) => {
     const today = new Date();
@@ -96,7 +112,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const totalCaloriesIn = displayedMealLogs.reduce((acc, log) => acc + log.totalCalories, 0);
   const netCalories = totalCaloriesIn - (isToday(viewDate) ? totalCaloriesBurned : profile.bmr + exerciseCaloriesBurned);
-  const predictedWeightChange = (totalCaloriesIn - profile.bmr - exerciseCaloriesBurned) / CALORIES_PER_KG_FAT; // kg
+  // For today, use time-based BMR to match Predicted Weight calculation; for past days, use full BMR
+  const predictedWeightChange = (totalCaloriesIn - bmrBurnedSoFar - exerciseCaloriesBurned) / CALORIES_PER_KG_FAT; // kg
 
   const progressPercentage = Math.min((totalCaloriesIn / dailyTarget) * 100, 100);
   const burnProgress = isToday(viewDate) 
