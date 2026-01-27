@@ -18,13 +18,30 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Automatic calorie burn calculation based on exercise type
 - Exercise calories added to daily burn total
 
-### ⚖️ Smart Weight Prediction
+### ⚖️ Smart Weight Prediction with Calibration
 - Automatic weight prediction based on net calorie history
 - Tracks cumulative calorie surplus/deficit since last weight update
 - Shows "Predicted Weight" when it differs from recorded weight
 - Tap to manually update weight and reset prediction baseline
 - Uses 7,700 calories per kg of body fat formula
 - **Supports both kg and lbs units**
+- **Adaptive BMR calibration** - learns your actual metabolism over time:
+  - Compares predicted vs actual weight changes when you update
+  - Adjusts "Effective BMR" to match your real metabolism
+  - Historical impact records corrected to reflect actual changes
+  - Exponential smoothing (70% old, 30% new) for stable learning
+
+### 📈 Impact History & Trends
+- Tap "Daily Impact" card to view historical weight trends
+- **Three views:**
+  - **Daily:** Last 7 days of weight impact
+  - **Weekly:** Last 8 weeks aggregated
+  - **Monthly:** Last 8 months aggregated
+- Line chart visualization with zero reference line
+- Fixed Y-axis boundaries that auto-expand for large values
+- Persisted impact history with catch-up backfill on app load
+- Today's live value calculated in real-time
+- Summary statistics: total and average impact
 
 ### ✏️ Profile Editing
 - Tap on avatar/name to edit profile settings
@@ -108,8 +125,10 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Name, Age, Gender, Height, Weight
 - Weight Unit (kg or lbs)
 - BMR (Basal Metabolic Rate)
+- Calibration Factor (learned metabolism adjustment)
 - Last weight update timestamp for prediction
 - Age last updated year (for auto-increment)
+- Daily exercise goal
 
 ### Meal Log
 - Timestamp, Meal type
@@ -120,6 +139,10 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Timestamp, Exercise type
 - Duration in minutes
 - Calculated calories burned
+
+### Daily Impact Record
+- Date (YYYY-MM-DD format)
+- Weight impact in kg (can be positive or negative)
 
 ## Deployment
 
