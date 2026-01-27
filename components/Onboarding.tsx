@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { UserProfile, Gender, ActivityLevel } from '../types';
-import { ACTIVITY_MULTIPLIERS } from '../constants';
+import { UserProfile, Gender, ActivityLevel, WeightUnit } from '../types';
+import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg } from '../constants';
 import { User, Ruler, ArrowRight, ChevronLeft } from 'lucide-react';
 
 interface OnboardingProps {
@@ -13,7 +13,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
   const [formData, setFormData] = useState<Partial<UserProfile>>({
     gender: 'male',
     activityLevel: ActivityLevel.Sedentary, // Default to sedentary, exercise tracked separately
+    weightUnit: 'kg',
   });
+  const [weightInput, setWeightInput] = useState<number>(0);
 
   const calculateStats = (data: Partial<UserProfile>): { bmr: number; tdee: number } => {
     const { weight, height, age, gender, activityLevel } = data;
@@ -35,11 +37,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
     if (step < 2) {
       setStep(step + 1);
     } else {
-      const stats = calculateStats(formData);
+      // Convert weight to kg if needed
+      const weightInKg = formData.weightUnit === 'lbs' ? lbsToKg(weightInput) : weightInput;
+      const finalData = { ...formData, weight: weightInKg };
+      const stats = calculateStats(finalData);
       onComplete({
-        ...formData as UserProfile,
+        ...finalData as UserProfile,
         ...stats,
         lastWeightUpdate: Date.now(), // Initial weight update timestamp
+        ageLastUpdatedYear: new Date().getFullYear(),
       });
     }
   };
@@ -126,15 +132,52 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current Weight (kg)</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                placeholder="70"
-                value={formData.weight || ''}
-                onChange={(e) => handleChange('weight', parseFloat(e.target.value) || 0)}
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Weight</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                  placeholder={formData.weightUnit === 'lbs' ? '154' : '70'}
+                  value={weightInput || ''}
+                  onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
+                />
+                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (formData.weightUnit !== 'kg') {
+                        if (weightInput > 0) setWeightInput(Math.round(lbsToKg(weightInput) * 10) / 10);
+                        handleChange('weightUnit', 'kg');
+                      }
+                    }}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      formData.weightUnit === 'kg'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    kg
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (formData.weightUnit !== 'lbs') {
+                        if (weightInput > 0) setWeightInput(Math.round(kgToLbs(weightInput) * 10) / 10);
+                        handleChange('weightUnit', 'lbs');
+                      }
+                    }}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      formData.weightUnit === 'lbs'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    lbs
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -143,7 +186,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
           onClick={handleNext}
           disabled={
             (step === 1 && (!formData.name || !formData.age)) ||
-            (step === 2 && (!formData.height || !formData.weight))
+            (step === 2 && (!formData.height || !weightInput))
           }
           className="w-full mt-8 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

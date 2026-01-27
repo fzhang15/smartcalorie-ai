@@ -10,6 +10,11 @@ export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
 
 export const CALORIES_PER_KG_FAT = 7700;
 
+// Weight conversion constants
+export const LBS_PER_KG = 2.20462;
+export const kgToLbs = (kg: number) => kg * LBS_PER_KG;
+export const lbsToKg = (lbs: number) => lbs / LBS_PER_KG;
+
 // Calories burned per minute for each exercise type (approximate for 70kg person)
 export const EXERCISE_CALORIES_PER_MIN: Record<ExerciseType, number> = {
   walking: 4,      // ~240 cal/hr

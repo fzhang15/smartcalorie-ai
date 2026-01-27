@@ -24,6 +24,19 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Shows "Predicted Weight" when it differs from recorded weight
 - Tap to manually update weight and reset prediction baseline
 - Uses 7,700 calories per kg of body fat formula
+- **Supports both kg and lbs units**
+
+### ✏️ Profile Editing
+- Tap on avatar/name to edit profile settings
+- Editable fields: Gender, Age, Height, Weight
+- Name is read-only after registration
+- Real-time BMR preview when editing
+- **Weight unit toggle (kg/lbs)** - converts automatically
+
+### 🎂 Automatic Age Increment
+- Age automatically increases by 1 year on January 1st
+- BMR automatically recalculated with new age
+- No manual updates needed
 
 ### ⏱️ Time-Based BMR Tracking
 - Real-time BMR burn calculation proportional to time of day
@@ -93,8 +106,10 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 
 ### User Profile
 - Name, Age, Gender, Height, Weight
+- Weight Unit (kg or lbs)
 - BMR (Basal Metabolic Rate)
 - Last weight update timestamp for prediction
+- Age last updated year (for auto-increment)
 
 ### Meal Log
 - Timestamp, Meal type

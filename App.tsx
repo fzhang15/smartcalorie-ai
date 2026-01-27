@@ -6,6 +6,7 @@ import MealLogger from './components/MealLogger';
 import WeightInput from './components/WeightInput';
 import UserSelector from './components/UserSelector';
 import ExerciseLogger from './components/ExerciseLogger';
+import ProfileEditor from './components/ProfileEditor';
 import { ACTIVITY_MULTIPLIERS } from './constants';
 
 const COLORS = [
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   const [showLogger, setShowLogger] = useState(false);
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [showExerciseLogger, setShowExerciseLogger] = useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Initial Data Load & Migration Logic
   useEffect(() => {
@@ -100,6 +102,36 @@ const App: React.FC = () => {
         // Migration: Add lastWeightUpdate if missing
         if (!parsedProfile.lastWeightUpdate) {
           parsedProfile.lastWeightUpdate = Date.now();
+          needsSave = true;
+        }
+        
+        // Migration: Add ageLastUpdatedYear if missing
+        if (!parsedProfile.ageLastUpdatedYear) {
+          parsedProfile.ageLastUpdatedYear = new Date().getFullYear();
+          needsSave = true;
+        }
+        
+        // Migration: Add weightUnit if missing
+        if (!parsedProfile.weightUnit) {
+          parsedProfile.weightUnit = 'kg';
+          needsSave = true;
+        }
+        
+        // Auto-increment age on January 1st each year
+        const currentYear = new Date().getFullYear();
+        if (parsedProfile.ageLastUpdatedYear < currentYear) {
+          const yearsToAdd = currentYear - parsedProfile.ageLastUpdatedYear;
+          parsedProfile.age += yearsToAdd;
+          parsedProfile.ageLastUpdatedYear = currentYear;
+          // Recalculate BMR with new age
+          let newBmr = (10 * parsedProfile.weight) + (6.25 * parsedProfile.height) - (5 * parsedProfile.age);
+          if (parsedProfile.gender === 'male') {
+            newBmr += 5;
+          } else {
+            newBmr -= 161;
+          }
+          parsedProfile.bmr = Math.round(newBmr);
+          parsedProfile.tdee = Math.round(newBmr * ACTIVITY_MULTIPLIERS[parsedProfile.activityLevel]);
           needsSave = true;
         }
         
@@ -225,6 +257,11 @@ const App: React.FC = () => {
     });
   };
 
+  const handleEditProfile = (updates: Partial<UserProfile>) => {
+    if (!profile) return;
+    setProfile({ ...profile, ...updates });
+  };
+
   const handleResetProfile = () => {
     if (!currentUserId) return;
     if(window.confirm("Delete this profile? This cannot be undone.")) {
@@ -283,6 +320,7 @@ const App: React.FC = () => {
             onOpenLogger={() => setShowLogger(true)}
             onOpenExerciseLogger={() => setShowExerciseLogger(true)}
             onUpdateWeight={() => setShowWeightInput(true)}
+            onEditProfile={() => setShowProfileEditor(true)}
             onReset={handleResetProfile}
             onDeleteLog={handleDeleteLog}
             onDeleteExerciseLog={handleDeleteExerciseLog}
@@ -307,6 +345,14 @@ const App: React.FC = () => {
               currentWeight={profile.weight}
               onSave={handleUpdateWeight}
               onClose={() => setShowWeightInput(false)}
+            />
+          )}
+
+          {showProfileEditor && (
+            <ProfileEditor
+              profile={profile}
+              onSave={handleEditProfile}
+              onClose={() => setShowProfileEditor(false)}
             />
           )}
         </div>

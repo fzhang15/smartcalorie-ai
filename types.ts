@@ -8,18 +8,22 @@ export enum ActivityLevel {
   VeryActive = 'very_active', // 1.9
 }
 
+export type WeightUnit = 'kg' | 'lbs';
+
 export interface UserProfile {
   id: string; // Added ID to profile
   name: string;
   age: number;
   gender: Gender;
   height: number; // cm
-  weight: number; // kg (last manually updated weight)
+  weight: number; // kg (always stored in kg, converted for display)
+  weightUnit: WeightUnit; // User's preferred weight unit
   activityLevel: ActivityLevel;
   bmr: number;
   tdee: number;
   avatarColor?: string; // For UI
   lastWeightUpdate: number; // timestamp of last manual weight update
+  ageLastUpdatedYear: number; // Year when age was last updated (for auto-increment)
 }
 
 export interface UserSummary {

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { UserProfile, MealLog, ExerciseLog } from '../types';
-import { CALORIES_PER_KG_FAT, EXERCISE_LABELS } from '../constants';
+import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs } from '../constants';
 import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
@@ -11,6 +11,7 @@ interface DashboardProps {
   onOpenLogger: () => void;
   onOpenExerciseLogger: () => void;
   onUpdateWeight: () => void;
+  onEditProfile: () => void;
   onReset: () => void;
   onDeleteLog: (logId: string) => void;
   onDeleteExerciseLog: (logId: string) => void;
@@ -22,7 +23,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   exerciseLogs,
   onOpenLogger, 
   onOpenExerciseLogger,
-  onUpdateWeight, 
+  onUpdateWeight,
+  onEditProfile,
   onReset, 
   onDeleteLog,
   onDeleteExerciseLog 
@@ -173,15 +175,18 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Top Bar - Added pt-4 for status bar spacing */}
       <div className="bg-white p-6 pb-4 pt-8 rounded-b-3xl shadow-sm border-b border-gray-100">
         <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
+          <button 
+            onClick={onEditProfile}
+            className="flex items-center gap-3 hover:bg-gray-50 p-2 -m-2 rounded-xl transition-colors"
+          >
              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${profile.avatarColor || 'bg-brand-500'}`}>
                 {profile.name.charAt(0).toUpperCase()}
              </div>
-             <div>
+             <div className="text-left">
                 <h1 className="text-xl font-bold text-gray-800">{profile.name}</h1>
-                <p className="text-xs text-gray-500">Let's track nutrition.</p>
+                <p className="text-xs text-gray-500">Tap to edit profile</p>
              </div>
-          </div>
+          </button>
           <button onClick={onReset} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete Profile">
               <Trash2 size={20} />
           </button>
@@ -313,7 +318,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               {Math.abs(predictedWeight - profile.weight) > 0.001 ? 'Predicted Weight' : 'Current Weight'}
             </p>
              <p className="text-lg font-bold text-gray-800">
-                {predictedWeight.toFixed(1)} <span className="text-sm font-normal text-gray-500">kg</span>
+                {profile.weightUnit === 'lbs' 
+                  ? (kgToLbs(predictedWeight)).toFixed(1) 
+                  : predictedWeight.toFixed(1)
+                } <span className="text-sm font-normal text-gray-500">{profile.weightUnit || 'kg'}</span>
             </p>
             {Math.abs(predictedWeight - profile.weight) > 0.001 && (
               <p className="text-[10px] text-blue-500 mt-1">Tap to update</p>
