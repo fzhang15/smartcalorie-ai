@@ -277,20 +277,20 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Exercise Calories */}
-            {exerciseCaloriesBurned > 0 && (
-              <div>
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span className="flex items-center gap-1"><Activity size={10}/> Exercise</span>
-                    <span>+{exerciseCaloriesBurned} kcal</span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-2">
-                  <div 
-                    className="h-2 rounded-full transition-all duration-1000 bg-green-500" 
-                    style={{ width: '100%' }}
-                  ></div>
-                </div>
+            <div>
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <span className="flex items-center gap-1"><Activity size={10}/> Exercise</span>
+                  <span>{exerciseCaloriesBurned} / {profile.dailyExerciseGoal || 300} kcal</span>
               </div>
-            )}
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-1000 ${
+                    exerciseCaloriesBurned >= (profile.dailyExerciseGoal || 300) ? 'bg-green-500' : 'bg-green-400'
+                  }`}
+                  style={{ width: `${Math.min((exerciseCaloriesBurned / (profile.dailyExerciseGoal || 300)) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

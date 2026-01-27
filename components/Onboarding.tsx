@@ -46,6 +46,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
         ...stats,
         lastWeightUpdate: Date.now(), // Initial weight update timestamp
         ageLastUpdatedYear: new Date().getFullYear(),
+        dailyExerciseGoal: 300, // Default exercise goal
       });
     }
   };

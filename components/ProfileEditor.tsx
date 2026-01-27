@@ -17,6 +17,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
   const [weightInput, setWeightInput] = useState<number>(
     profile.weightUnit === 'lbs' ? Math.round(kgToLbs(profile.weight) * 10) / 10 : profile.weight
   );
+  const [dailyExerciseGoal, setDailyExerciseGoal] = useState<number>(profile.dailyExerciseGoal || 300);
 
   const handleSave = () => {
     // Convert weight to kg if needed
@@ -40,6 +41,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
       bmr: Math.round(newBmr),
       tdee: Math.round(newTdee),
       ageLastUpdatedYear: new Date().getFullYear(),
+      dailyExerciseGoal,
     };
 
     // Update lastWeightUpdate if weight changed
@@ -174,6 +176,22 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Daily Exercise Goal */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Exercise Goal (kcal)</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              max="2000"
+              step="50"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+              value={dailyExerciseGoal}
+              onChange={(e) => setDailyExerciseGoal(parseInt(e.target.value) || 0)}
+            />
+            <p className="text-xs text-gray-400 mt-1">Target calories to burn through exercise each day</p>
           </div>
 
           {/* BMR Preview */}

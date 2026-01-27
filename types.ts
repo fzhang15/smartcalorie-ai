@@ -24,6 +24,7 @@ export interface UserProfile {
   avatarColor?: string; // For UI
   lastWeightUpdate: number; // timestamp of last manual weight update
   ageLastUpdatedYear: number; // Year when age was last updated (for auto-increment)
+  dailyExerciseGoal: number; // Daily exercise calorie burn goal (default 300)
 }
 
 export interface UserSummary {

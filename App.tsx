@@ -117,6 +117,12 @@ const App: React.FC = () => {
           needsSave = true;
         }
         
+        // Migration: Add dailyExerciseGoal if missing
+        if (!parsedProfile.dailyExerciseGoal) {
+          parsedProfile.dailyExerciseGoal = 300;
+          needsSave = true;
+        }
+        
         // Auto-increment age on January 1st each year
         const currentYear = new Date().getFullYear();
         if (parsedProfile.ageLastUpdatedYear < currentYear) {
