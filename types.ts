@@ -65,3 +65,8 @@ export interface ExerciseLog {
   durationMinutes: number;
   caloriesBurned: number;
 }
+
+export interface DailyImpactRecord {
+  date: string; // YYYY-MM-DD format
+  impactKg: number; // finalized weight impact in kg
+}

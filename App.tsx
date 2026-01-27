@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, MealLog, UserSummary, ExerciseLog, ActivityLevel } from './types';
+import { UserProfile, MealLog, UserSummary, ExerciseLog, ActivityLevel, DailyImpactRecord } from './types';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import MealLogger from './components/MealLogger';
@@ -7,7 +7,7 @@ import WeightInput from './components/WeightInput';
 import UserSelector from './components/UserSelector';
 import ExerciseLogger from './components/ExerciseLogger';
 import ProfileEditor from './components/ProfileEditor';
-import { ACTIVITY_MULTIPLIERS } from './constants';
+import { ACTIVITY_MULTIPLIERS, CALORIES_PER_KG_FAT } from './constants';
 
 const COLORS = [
   'bg-red-500', 'bg-orange-500', 'bg-amber-500', 
@@ -19,12 +19,25 @@ const COLORS = [
 
 const getRandomColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
 
+// Helper function to format date as YYYY-MM-DD
+const formatDateKey = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
+// Helper to get yesterday's date
+const getYesterday = (): Date => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday;
+};
+
 const App: React.FC = () => {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLog[]>([]);
+  const [impactHistory, setImpactHistory] = useState<DailyImpactRecord[]>([]);
   
   // UI State
   const [view, setView] = useState<'loading' | 'user-select' | 'onboarding' | 'dashboard'>('loading');
@@ -174,10 +187,90 @@ const App: React.FC = () => {
       } else {
         setExerciseLogs([]);
       }
+      
+      // Load impact history
+      const storedImpactHistory = localStorage.getItem(`smartcalorie_impact_${currentUserId}`);
+      if (storedImpactHistory) {
+        setImpactHistory(JSON.parse(storedImpactHistory));
+      } else {
+        setImpactHistory([]);
+      }
     } catch (e) {
       console.error("Failed to load user data", e);
     }
   }, [currentUserId]);
+
+  // Catch-up logic: Backfill missing days in impact history
+  useEffect(() => {
+    if (!currentUserId || !profile || logs.length === 0) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayKey = formatDateKey(today);
+
+    // Find the earliest log date
+    const allTimestamps = [...logs.map(l => l.timestamp), ...exerciseLogs.map(l => l.timestamp)];
+    if (allTimestamps.length === 0) return;
+    
+    const earliestLog = new Date(Math.min(...allTimestamps));
+    earliestLog.setHours(0, 0, 0, 0);
+
+    // Calculate daily impact for a specific date
+    const calculateDailyImpact = (date: Date): number | null => {
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const dayMealLogs = logs.filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
+      const dayExerciseLogsFiltered = exerciseLogs.filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
+
+      // Skip days with no logs (Option A)
+      if (dayMealLogs.length === 0 && dayExerciseLogsFiltered.length === 0) {
+        return null;
+      }
+
+      const dayMealCalories = dayMealLogs.reduce((acc, log) => acc + log.totalCalories, 0);
+      const dayExerciseCalories = dayExerciseLogsFiltered.reduce((acc, log) => acc + log.caloriesBurned, 0);
+
+      const netCalories = dayMealCalories - profile.bmr - dayExerciseCalories;
+      return netCalories / CALORIES_PER_KG_FAT;
+    };
+
+    // Build set of existing dates in history
+    const existingDates = new Set(impactHistory.map(r => r.date));
+
+    // Check for missing dates between earliest log and yesterday
+    const newRecords: DailyImpactRecord[] = [];
+    const current = new Date(earliestLog);
+    
+    while (current < today) {
+      const dateKey = formatDateKey(current);
+      
+      // Only add if not already in history and not today
+      if (!existingDates.has(dateKey)) {
+        const impact = calculateDailyImpact(current);
+        if (impact !== null) {
+          newRecords.push({
+            date: dateKey,
+            impactKg: impact,
+          });
+        }
+      }
+      
+      current.setDate(current.getDate() + 1);
+    }
+
+    // If we have new records, add them to history
+    if (newRecords.length > 0) {
+      setImpactHistory(prev => {
+        const combined = [...prev, ...newRecords];
+        // Sort by date and keep only last 365 days (max)
+        combined.sort((a, b) => a.date.localeCompare(b.date));
+        return combined.slice(-365);
+      });
+    }
+  }, [currentUserId, profile, logs, exerciseLogs]);
 
   // Save User Data
   useEffect(() => {
@@ -197,6 +290,12 @@ const App: React.FC = () => {
       localStorage.setItem(`smartcalorie_exercise_${currentUserId}`, JSON.stringify(exerciseLogs));
     }
   }, [exerciseLogs, currentUserId]);
+
+  useEffect(() => {
+    if (currentUserId && impactHistory.length > 0) {
+      localStorage.setItem(`smartcalorie_impact_${currentUserId}`, JSON.stringify(impactHistory));
+    }
+  }, [impactHistory, currentUserId]);
 
 
   // Actions
@@ -219,6 +318,7 @@ const App: React.FC = () => {
     setProfile(newProfile);
     setLogs([]);
     setExerciseLogs([]);
+    setImpactHistory([]);
     setView('dashboard');
   };
 
@@ -275,6 +375,7 @@ const App: React.FC = () => {
         localStorage.removeItem(`smartcalorie_profile_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_logs_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_exercise_${currentUserId}`);
+        localStorage.removeItem(`smartcalorie_impact_${currentUserId}`);
         
         // Remove from users list
         const updatedUsers = users.filter(u => u.id !== currentUserId);
@@ -285,6 +386,7 @@ const App: React.FC = () => {
         setProfile(null);
         setLogs([]);
         setExerciseLogs([]);
+        setImpactHistory([]);
         
         // After deletion, redirect to onboarding
         setView('onboarding');
@@ -323,6 +425,7 @@ const App: React.FC = () => {
             profile={profile}
             logs={logs}
             exerciseLogs={exerciseLogs}
+            impactHistory={impactHistory}
             onOpenLogger={() => setShowLogger(true)}
             onOpenExerciseLogger={() => setShowExerciseLogger(true)}
             onUpdateWeight={() => setShowWeightInput(true)}
@@ -349,6 +452,7 @@ const App: React.FC = () => {
           {showWeightInput && (
             <WeightInput
               currentWeight={profile.weight}
+              weightUnit={profile.weightUnit}
               onSave={handleUpdateWeight}
               onClose={() => setShowWeightInput(false)}
             />

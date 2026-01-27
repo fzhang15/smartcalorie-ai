@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { WeightUnit } from '../types';
+import { kgToLbs, lbsToKg } from '../constants';
 
 interface WeightInputProps {
-  currentWeight: number;
-  onSave: (weight: number) => void;
+  currentWeight: number; // Always in kg (internal storage)
+  weightUnit: WeightUnit;
+  onSave: (weight: number) => void; // Expects kg
   onClose: () => void;
 }
 
-const WeightInput: React.FC<WeightInputProps> = ({ currentWeight, onSave, onClose }) => {
-  const [weight, setWeight] = useState(currentWeight.toString());
+const WeightInput: React.FC<WeightInputProps> = ({ currentWeight, weightUnit, onSave, onClose }) => {
+  // Convert to display unit for initial value
+  const displayWeight = weightUnit === 'lbs' ? kgToLbs(currentWeight) : currentWeight;
+  const [weight, setWeight] = useState(displayWeight.toFixed(1));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(weight);
     if (val > 0) {
-      onSave(val);
+      // Convert back to kg if user is using lbs
+      const weightInKg = weightUnit === 'lbs' ? lbsToKg(val) : val;
+      onSave(weightInKg);
       onClose();
     }
   };
@@ -31,7 +38,7 @@ const WeightInput: React.FC<WeightInputProps> = ({ currentWeight, onSave, onClos
         
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Current Weight (kg)</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Current Weight ({weightUnit})</label>
             <input
               type="number"
               step="0.1"

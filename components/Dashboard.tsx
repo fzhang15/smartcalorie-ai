@@ -1,13 +1,15 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { UserProfile, MealLog, ExerciseLog } from '../types';
+import { UserProfile, MealLog, ExerciseLog, DailyImpactRecord } from '../types';
 import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs } from '../constants';
-import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity } from 'lucide-react';
+import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import ImpactHistoryModal from './ImpactHistoryModal';
 
 interface DashboardProps {
   profile: UserProfile;
   logs: MealLog[];
   exerciseLogs: ExerciseLog[];
+  impactHistory: DailyImpactRecord[];
   onOpenLogger: () => void;
   onOpenExerciseLogger: () => void;
   onUpdateWeight: () => void;
@@ -21,6 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   profile, 
   logs, 
   exerciseLogs,
+  impactHistory,
   onOpenLogger, 
   onOpenExerciseLogger,
   onUpdateWeight,
@@ -34,6 +37,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   
   // State for real-time clock update
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // State for impact history modal
+  const [showImpactHistory, setShowImpactHistory] = useState(false);
 
   // Update current time every minute for real-time calorie burn calculation
   useEffect(() => {
@@ -322,7 +328,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Prediction & Metrics */}
       <div className="px-6 -mt-4 grid grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+        <button 
+            onClick={() => setShowImpactHistory(true)}
+            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center active:scale-95 transition-transform relative group"
+        >
             <div className={`p-2 rounded-full mb-2 ${predictedWeightChange > 0 ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>
                 {predictedWeightChange > 0 ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}
             </div>
@@ -334,7 +343,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                   : predictedWeightChange.toFixed(3)
                 } <span className="text-sm font-normal text-gray-500">{profile.weightUnit || 'kg'}</span>
             </p>
-        </div>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <BarChart3 size={14} className="text-gray-400" />
+            </div>
+            <p className="text-[10px] text-brand-500 mt-1">Tap for history</p>
+        </button>
 
         <button 
             onClick={onUpdateWeight}
@@ -468,6 +481,17 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Impact History Modal */}
+      {showImpactHistory && (
+        <ImpactHistoryModal
+          profile={profile}
+          logs={logs}
+          exerciseLogs={exerciseLogs}
+          impactHistory={impactHistory}
+          onClose={() => setShowImpactHistory(false)}
+        />
+      )}
 
       {/* FAB - Only show if viewing Today */}
       {isToday(viewDate) && (
