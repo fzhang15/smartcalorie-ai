@@ -8,11 +8,23 @@ interface MealLoggerProps {
   onClose: () => void;
 }
 
+// Determine default meal type based on current time
+const getDefaultMealType = (): MealLog['mealType'] => {
+  const hour = new Date().getHours();
+  const minutes = new Date().getMinutes();
+  const time = hour + minutes / 60;
+  
+  if (time >= 8 && time < 10) return 'breakfast';      // 8:00 - 10:00
+  if (time >= 11.5 && time < 13.5) return 'lunch';     // 11:30 - 13:30
+  if (time >= 17 && time < 19) return 'dinner';        // 17:00 - 19:00
+  return 'snack';                                       // Other times
+};
+
 const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedItems, setAnalyzedItems] = useState<FoodItem[]>([]);
-  const [mealType, setMealType] = useState<MealLog['mealType']>('snack');
+  const [mealType, setMealType] = useState<MealLog['mealType']>(getDefaultMealType());
   
   // Camera State
   const [isCameraOpen, setIsCameraOpen] = useState(false);
