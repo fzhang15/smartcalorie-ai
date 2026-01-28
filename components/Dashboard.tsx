@@ -263,7 +263,27 @@ const Dashboard: React.FC<DashboardProps> = ({
   const exerciseCaloriesBurned = displayedExerciseLogs.reduce((acc, log) => acc + log.caloriesBurned, 0);
 
   // Calculate total calories burned: BMR (time-based for today) + Exercise
-  const bmrBurnedSoFar = isToday(viewDate) ? getTimeBasedBMR() : effectiveBmr;
+  // On registration day, start counting from lastWeightUpdate, not midnight
+  const getBmrBurnedSoFar = () => {
+    if (!isToday(viewDate)) return effectiveBmr;
+    
+    const lastUpdate = profile.lastWeightUpdate || Date.now();
+    const lastUpdateDate = new Date(lastUpdate);
+    const isRegistrationDay = lastUpdateDate.getDate() === viewDate.getDate() &&
+                               lastUpdateDate.getMonth() === viewDate.getMonth() &&
+                               lastUpdateDate.getFullYear() === viewDate.getFullYear();
+    
+    if (isRegistrationDay) {
+      // On registration day, BMR burned starts from registration time
+      const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / (1000 * 60 * 60));
+      return Math.round((effectiveBmr / 24) * hoursElapsed);
+    }
+    
+    // Normal day: BMR burned from midnight
+    return getTimeBasedBMR();
+  };
+  
+  const bmrBurnedSoFar = getBmrBurnedSoFar();
   const totalCaloriesBurned = bmrBurnedSoFar + exerciseCaloriesBurned;
 
   // Daily target is effective BMR + exercise (not TDEE since we track exercise separately)
@@ -276,7 +296,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const progressPercentage = Math.min((totalCaloriesIn / dailyTarget) * 100, 100);
   const burnProgress = isToday(viewDate) 
-    ? ((currentTime.getHours() + currentTime.getMinutes() / 60) / 24) * 100 
+    ? Math.min((bmrBurnedSoFar / effectiveBmr) * 100, 100)
     : 100;
   
   const macroData = useMemo(() => {

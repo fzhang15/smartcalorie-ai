@@ -148,12 +148,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                 <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (formData.weightUnit !== 'kg') {
-                        if (weightInput > 0) setWeightInput(Math.round(lbsToKg(weightInput) * 10) / 10);
-                        handleChange('weightUnit', 'kg');
-                      }
-                    }}
+                    onClick={() => handleChange('weightUnit', 'kg')}
                     className={`px-4 py-2 font-medium transition-colors ${
                       formData.weightUnit === 'kg'
                         ? 'bg-brand-500 text-white'
@@ -164,12 +159,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (formData.weightUnit !== 'lbs') {
-                        if (weightInput > 0) setWeightInput(Math.round(kgToLbs(weightInput) * 10) / 10);
-                        handleChange('weightUnit', 'lbs');
-                      }
-                    }}
+                    onClick={() => handleChange('weightUnit', 'lbs')}
                     className={`px-4 py-2 font-medium transition-colors ${
                       formData.weightUnit === 'lbs'
                         ? 'bg-brand-500 text-white'
