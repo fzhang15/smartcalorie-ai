@@ -298,74 +298,27 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Calculate predicted weight based on cumulative net calories since last weight update
   const predictedWeight = useMemo(() => {
     const lastUpdate = profile.lastWeightUpdate || Date.now();
-    const startOfUpdateDay = new Date(lastUpdate);
-    startOfUpdateDay.setHours(0, 0, 0, 0);
     
-    let cumulativeWeightChange = 0;
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    // Only count meals logged AFTER the weight update
+    const caloriesIn = logs
+      .filter(log => log.timestamp > lastUpdate)
+      .reduce((acc, log) => acc + log.totalCalories, 0);
     
-    // Get unique days between lastWeightUpdate and today
-    const current = new Date(startOfUpdateDay);
-    while (current <= today) {
-      const dayStart = new Date(current);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(current);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      // Calculate calories eaten on this day
-      const dayMealCalories = logs
-        .filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime())
-        .reduce((acc, log) => acc + log.totalCalories, 0);
-      
-      // Calculate calories burned from exercise on this day
-      const dayExerciseCalories = exerciseLogs
-        .filter(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime())
-        .reduce((acc, log) => acc + log.caloriesBurned, 0);
-      
-      // Check if this day is the first day (same date as lastWeightUpdate)
-      const lastUpdateDate = new Date(lastUpdate);
-      const isFirstDay = current.getDate() === lastUpdateDate.getDate() &&
-                         current.getMonth() === lastUpdateDate.getMonth() &&
-                         current.getFullYear() === lastUpdateDate.getFullYear();
-
-      // Check if this is today (partial day)
-      const isCurrentDay = current.getDate() === new Date().getDate() &&
-                          current.getMonth() === new Date().getMonth() &&
-                          current.getFullYear() === new Date().getFullYear();
-      
-      // Calculate BMR burned for this day (using effective BMR)
-      let bmrBurned: number;
-      if (isFirstDay && isCurrentDay) {
-        // Same day as registration/weight update AND today: BMR from update time to now
-        const hoursElapsed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
-        bmrBurned = Math.round((effectiveBmr / 24) * Math.max(0, hoursElapsed));
-      } else if (isFirstDay) {
-        // First day but not today: BMR from update time to end of day
-        const endOfFirstDay = new Date(lastUpdate);
-        endOfFirstDay.setHours(23, 59, 59, 999);
-        const hoursElapsed = (endOfFirstDay.getTime() - lastUpdate) / (1000 * 60 * 60);
-        bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
-      } else if (isCurrentDay) {
-        // Today but not first day: BMR from midnight to now
-        bmrBurned = getTimeBasedBMR();
-      } else {
-        // Full past day
-        bmrBurned = effectiveBmr;
-      }
-      
-      // Net calories for the day
-      const netDayCalories = dayMealCalories - bmrBurned - dayExerciseCalories;
-      const dayWeightChange = netDayCalories / CALORIES_PER_KG_FAT;
-      
-      cumulativeWeightChange += dayWeightChange;
-      
-      // Move to next day
-      current.setDate(current.getDate() + 1);
-    }
+    // Only count exercise logged AFTER the weight update
+    const caloriesExercise = exerciseLogs
+      .filter(log => log.timestamp > lastUpdate)
+      .reduce((acc, log) => acc + log.caloriesBurned, 0);
     
-    return profile.weight + cumulativeWeightChange;
-  }, [logs, exerciseLogs, profile.weight, profile.bmr, profile.lastWeightUpdate, currentTime]);
+    // Calculate BMR burned from lastUpdate to now
+    const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / (1000 * 60 * 60));
+    const bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
+    
+    // Net calories and weight change
+    const netCalories = caloriesIn - bmrBurned - caloriesExercise;
+    const weightChange = netCalories / CALORIES_PER_KG_FAT;
+    
+    return profile.weight + weightChange;
+  }, [logs, exerciseLogs, profile.weight, profile.lastWeightUpdate, effectiveBmr, currentTime]);
 
   const formattedDate = viewDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
