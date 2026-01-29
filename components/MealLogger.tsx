@@ -174,7 +174,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
         <div className="overflow-y-auto p-4 space-y-6">
           {isCameraOpen ? (
             <div className="space-y-4">
-                <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] flex items-center justify-center">
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-square flex items-center justify-center">
                     <video 
                         ref={videoRef} 
                         autoPlay 
@@ -182,18 +182,10 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                         muted
                         className="w-full h-full object-cover"
                     />
-                    {/* Square bounding box overlay */}
+                    {/* Square bounding box overlay - full area indicator */}
                     <div className="absolute inset-0 pointer-events-none">
-                      {/* Top dark area */}
-                      <div className="absolute top-0 left-0 right-0 h-[calc((100%-min(100%,75vw))/2)] bg-black/50" />
-                      {/* Bottom dark area */}
-                      <div className="absolute bottom-0 left-0 right-0 h-[calc((100%-min(100%,75vw))/2)] bg-black/50" />
-                      {/* Left dark area */}
-                      <div className="absolute top-[calc((100%-min(100%,75vw))/2)] left-0 w-[calc((100%-min(100%,75vw))/2)] h-[min(100%,75vw)] bg-black/50" />
-                      {/* Right dark area */}
-                      <div className="absolute top-[calc((100%-min(100%,75vw))/2)] right-0 w-[calc((100%-min(100%,75vw))/2)] h-[min(100%,75vw)] bg-black/50" />
-                      {/* Square border */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90%,75vw)] aspect-square border-2 border-white/80 rounded-lg">
+                      {/* Border around the entire capture area */}
+                      <div className="absolute inset-2 border-2 border-white/80 rounded-lg">
                         {/* Corner markers */}
                         <div className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg" />
                         <div className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg" />
@@ -203,7 +195,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                       {/* Helper text */}
                       <div className="absolute top-4 left-0 right-0 text-center">
                         <span className="text-white/80 text-sm font-medium bg-black/30 px-3 py-1 rounded-full">
-                          Position food in the square
+                          Position food in frame
                         </span>
                       </div>
                     </div>
@@ -266,8 +258,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
               </button>
             </div>
           ) : (
-            <div className="relative rounded-xl overflow-hidden bg-black flex items-center justify-center">
-              <img src={image} alt="Meal" className="w-full h-64 object-contain" />
+            <div className="relative rounded-xl overflow-hidden bg-gray-100 aspect-square flex items-center justify-center">
+              <img src={image} alt="Meal" className="w-full h-full object-cover" />
               {analyzedItems.length === 0 && !isAnalyzing && (
                  <button 
                  onClick={() => setImage(null)}
