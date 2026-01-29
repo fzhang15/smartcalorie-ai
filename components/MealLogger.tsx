@@ -79,12 +79,27 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
 
   const capturePhoto = () => {
     if (videoRef.current) {
+      const video = videoRef.current;
+      const videoWidth = video.videoWidth;
+      const videoHeight = video.videoHeight;
+      
+      // Calculate the square crop area (centered)
+      const size = Math.min(videoWidth, videoHeight);
+      const offsetX = (videoWidth - size) / 2;
+      const offsetY = (videoHeight - size) / 2;
+      
+      // Create canvas with square dimensions
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = size;
+      canvas.height = size;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
+        // Draw only the square portion from the center of the video
+        ctx.drawImage(
+          video,
+          offsetX, offsetY, size, size,  // Source: square from center
+          0, 0, size, size               // Destination: full canvas
+        );
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setImage(dataUrl);
         stopCamera();
@@ -167,6 +182,31 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                         muted
                         className="w-full h-full object-cover"
                     />
+                    {/* Square bounding box overlay */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {/* Top dark area */}
+                      <div className="absolute top-0 left-0 right-0 h-[calc((100%-min(100%,75vw))/2)] bg-black/50" />
+                      {/* Bottom dark area */}
+                      <div className="absolute bottom-0 left-0 right-0 h-[calc((100%-min(100%,75vw))/2)] bg-black/50" />
+                      {/* Left dark area */}
+                      <div className="absolute top-[calc((100%-min(100%,75vw))/2)] left-0 w-[calc((100%-min(100%,75vw))/2)] h-[min(100%,75vw)] bg-black/50" />
+                      {/* Right dark area */}
+                      <div className="absolute top-[calc((100%-min(100%,75vw))/2)] right-0 w-[calc((100%-min(100%,75vw))/2)] h-[min(100%,75vw)] bg-black/50" />
+                      {/* Square border */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90%,75vw)] aspect-square border-2 border-white/80 rounded-lg">
+                        {/* Corner markers */}
+                        <div className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg" />
+                        <div className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg" />
+                        <div className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-lg" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-lg" />
+                      </div>
+                      {/* Helper text */}
+                      <div className="absolute top-4 left-0 right-0 text-center">
+                        <span className="text-white/80 text-sm font-medium bg-black/30 px-3 py-1 rounded-full">
+                          Position food in the square
+                        </span>
+                      </div>
+                    </div>
                     <div className="absolute bottom-6 left-0 right-0 flex justify-center items-center gap-8 z-20">
                          <button 
                             onClick={stopCamera} 
@@ -226,8 +266,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
               </button>
             </div>
           ) : (
-            <div className="relative rounded-xl overflow-hidden bg-black">
-              <img src={image} alt="Meal" className="w-full h-64 object-cover opacity-90" />
+            <div className="relative rounded-xl overflow-hidden bg-black flex items-center justify-center">
+              <img src={image} alt="Meal" className="w-full h-64 object-contain" />
               {analyzedItems.length === 0 && !isAnalyzing && (
                  <button 
                  onClick={() => setImage(null)}
