@@ -363,26 +363,76 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
               </div>
 
               <h3 className="font-semibold text-gray-700">Identified Items:</h3>
+              <p className="text-xs text-gray-500 -mt-2 mb-2">Tap values to edit if AI estimate is incorrect</p>
               <div className="space-y-3">
                 {analyzedItems.map((item, idx) => {
                   const adjustedCalories = Math.round(item.calories * portionRatio);
+                  
+                  const updateItem = (field: keyof FoodItem, value: string | number) => {
+                    setAnalyzedItems(prev => prev.map((it, i) => 
+                      i === idx ? { ...it, [field]: typeof value === 'string' ? value : Number(value) } : it
+                    ));
+                  };
+                  
                   return (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                      <div>
-                        <p className="font-medium text-gray-800">{item.name}</p>
-                        <p className="text-xs text-gray-500">
-                          P: {Math.round(item.protein * portionRatio * 10) / 10}g • C: {Math.round(item.carbs * portionRatio * 10) / 10}g • F: {Math.round(item.fat * portionRatio * 10) / 10}g
+                    <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateItem('name', e.target.value)}
+                          className="font-medium text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-full max-w-[180px]"
+                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={item.calories}
+                            onChange={(e) => updateItem('calories', parseInt(e.target.value) || 0)}
+                            className="font-bold text-brand-600 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none text-right w-16"
+                          />
+                          <span className="text-xs text-gray-400">kcal</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 text-xs">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">P:</span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={item.protein}
+                            onChange={(e) => updateItem('protein', parseFloat(e.target.value) || 0)}
+                            className="text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
+                          />
+                          <span className="text-gray-500">g</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">C:</span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={item.carbs}
+                            onChange={(e) => updateItem('carbs', parseFloat(e.target.value) || 0)}
+                            className="text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
+                          />
+                          <span className="text-gray-500">g</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">F:</span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={item.fat}
+                            onChange={(e) => updateItem('fat', parseFloat(e.target.value) || 0)}
+                            className="text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
+                          />
+                          <span className="text-gray-500">g</span>
+                        </div>
+                      </div>
+                      {portionRatio < 1 && (
+                        <p className="text-xs text-gray-400">
+                          After portion: {adjustedCalories} kcal • P: {Math.round(item.protein * portionRatio * 10) / 10}g • C: {Math.round(item.carbs * portionRatio * 10) / 10}g • F: {Math.round(item.fat * portionRatio * 10) / 10}g
                         </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-brand-600">{adjustedCalories}</p>
-                        {portionRatio < 1 && (
-                          <p className="text-xs text-gray-400 line-through">{item.calories}</p>
-                        )}
-                        {portionRatio === 1 && (
-                          <p className="text-xs text-gray-400">kcal</p>
-                        )}
-                      </div>
+                      )}
                     </div>
                   );
                 })}
