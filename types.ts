@@ -50,6 +50,7 @@ export interface MealLog {
   items: FoodItem[];
   totalCalories: number;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  portionRatio?: number; // 0-1 之间，表示个人份额比例（如2人用餐则为0.5）
 }
 
 export interface DailyStats {

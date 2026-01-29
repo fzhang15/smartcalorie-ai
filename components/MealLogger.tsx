@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users } from 'lucide-react';
 import { analyzeFoodImage } from '../services/geminiService';
 import { FoodItem, MealLog } from '../types';
+
+type PortionOption = 1 | 2 | 3 | 4 | 'custom';
 
 interface MealLoggerProps {
   onLogMeal: (log: MealLog) => void;
@@ -25,6 +27,15 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedItems, setAnalyzedItems] = useState<FoodItem[]>([]);
   const [mealType, setMealType] = useState<MealLog['mealType']>(getDefaultMealType());
+  
+  // Portion/Sharing State
+  const [portionOption, setPortionOption] = useState<PortionOption>(1);
+  const [customRatio, setCustomRatio] = useState(50); // percentage 10-100
+  
+  // Calculate actual portion ratio
+  const portionRatio = portionOption === 'custom' 
+    ? customRatio / 100 
+    : 1 / portionOption;
   
   // Camera State
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -106,14 +117,26 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   };
 
   const handleSave = () => {
-    const totalCalories = analyzedItems.reduce((acc, item) => acc + item.calories, 0);
+    const originalTotalCalories = analyzedItems.reduce((acc, item) => acc + item.calories, 0);
+    const adjustedTotalCalories = Math.round(originalTotalCalories * portionRatio);
+    
+    // Adjust each item's calories based on portion ratio
+    const adjustedItems = analyzedItems.map(item => ({
+      ...item,
+      calories: Math.round(item.calories * portionRatio),
+      protein: Math.round(item.protein * portionRatio * 10) / 10,
+      carbs: Math.round(item.carbs * portionRatio * 10) / 10,
+      fat: Math.round(item.fat * portionRatio * 10) / 10,
+    }));
+    
     const log: MealLog = {
       id: Date.now().toString(),
       timestamp: Date.now(),
       imageUrl: image || undefined,
-      items: analyzedItems,
-      totalCalories,
+      items: adjustedItems,
+      totalCalories: adjustedTotalCalories,
       mealType,
+      portionRatio: portionRatio,
     };
     onLogMeal(log);
     onClose();
@@ -254,28 +277,96 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                 ))}
               </div>
 
-              <h3 className="font-semibold text-gray-700">Identified Items:</h3>
-              <div className="space-y-3">
-                {analyzedItems.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <div>
-                      <p className="font-medium text-gray-800">{item.name}</p>
-                      <p className="text-xs text-gray-500">
-                        P: {item.protein}g • C: {item.carbs}g • F: {item.fat}g
-                      </p>
+              {/* Portion/Sharing Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Users size={16} />
+                  <span className="text-sm font-medium">用餐人数</span>
+                </div>
+                <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                  {([1, 2, 3, 4, 'custom'] as const).map(option => (
+                    <button
+                      key={option}
+                      onClick={() => setPortionOption(option)}
+                      className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        portionOption === option 
+                          ? 'bg-white text-brand-700 shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {option === 'custom' ? '自定义' : `${option}人`}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Custom Ratio Slider */}
+                {portionOption === 'custom' && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">我的份额</span>
+                      <span className="text-sm font-bold text-brand-600">{customRatio}%</span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-brand-600">{item.calories}</p>
-                      <p className="text-xs text-gray-400">kcal</p>
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={customRatio}
+                      onChange={(e) => setCustomRatio(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>10%</span>
+                      <span>100%</span>
                     </div>
                   </div>
-                ))}
+                )}
+                
+                {/* Show portion info when not 100% */}
+                {portionRatio < 1 && (
+                  <p className="text-xs text-gray-500 text-center">
+                    热量将按 {Math.round(portionRatio * 100)}% 计算 (原始热量 × {portionRatio.toFixed(2)})
+                  </p>
+                )}
+              </div>
+
+              <h3 className="font-semibold text-gray-700">Identified Items:</h3>
+              <div className="space-y-3">
+                {analyzedItems.map((item, idx) => {
+                  const adjustedCalories = Math.round(item.calories * portionRatio);
+                  return (
+                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div>
+                        <p className="font-medium text-gray-800">{item.name}</p>
+                        <p className="text-xs text-gray-500">
+                          P: {Math.round(item.protein * portionRatio * 10) / 10}g • C: {Math.round(item.carbs * portionRatio * 10) / 10}g • F: {Math.round(item.fat * portionRatio * 10) / 10}g
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-brand-600">{adjustedCalories}</p>
+                        {portionRatio < 1 && (
+                          <p className="text-xs text-gray-400 line-through">{item.calories}</p>
+                        )}
+                        {portionRatio === 1 && (
+                          <p className="text-xs text-gray-400">kcal</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="flex justify-between items-center p-4 bg-brand-50 rounded-lg border border-brand-100">
-                <span className="font-semibold text-brand-900">Total Estimate</span>
+                <div>
+                  <span className="font-semibold text-brand-900">Total Estimate</span>
+                  {portionRatio < 1 && (
+                    <p className="text-xs text-brand-600/70">
+                      原始: {analyzedItems.reduce((a, b) => a + b.calories, 0)} kcal × {Math.round(portionRatio * 100)}%
+                    </p>
+                  )}
+                </div>
                 <span className="text-xl font-bold text-brand-700">
-                  {analyzedItems.reduce((a, b) => a + b.calories, 0)} kcal
+                  {Math.round(analyzedItems.reduce((a, b) => a + b.calories, 0) * portionRatio)} kcal
                 </span>
               </div>
 
