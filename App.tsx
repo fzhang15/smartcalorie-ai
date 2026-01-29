@@ -145,6 +145,12 @@ const App: React.FC = () => {
           needsSave = true;
         }
         
+        // Migration: Add createdAt if missing (use lastWeightUpdate as fallback)
+        if (!parsedProfile.createdAt) {
+          parsedProfile.createdAt = parsedProfile.lastWeightUpdate || Date.now();
+          needsSave = true;
+        }
+        
         // Auto-increment age on January 1st each year
         const currentYear = new Date().getFullYear();
         if (parsedProfile.ageLastUpdatedYear < currentYear) {

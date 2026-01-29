@@ -41,10 +41,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
       const weightInKg = formData.weightUnit === 'lbs' ? lbsToKg(weightInput) : weightInput;
       const finalData = { ...formData, weight: weightInKg };
       const stats = calculateStats(finalData);
+      const now = Date.now();
       onComplete({
         ...finalData as UserProfile,
         ...stats,
-        lastWeightUpdate: Date.now(), // Initial weight update timestamp
+        createdAt: now, // Profile creation timestamp (never changes)
+        lastWeightUpdate: now, // Initial weight update timestamp
         ageLastUpdatedYear: new Date().getFullYear(),
         dailyExerciseGoal: 300, // Default exercise goal
         calibrationFactor: 1.0, // Start with no calibration (BMR used as-is)

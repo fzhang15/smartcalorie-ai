@@ -269,7 +269,27 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Daily target is effective BMR + exercise (not TDEE since we track exercise separately)
   const dailyTarget = effectiveBmr;
 
-  const totalCaloriesIn = displayedMealLogs.reduce((acc, log) => acc + log.totalCalories, 0);
+  // Check if viewing registration day - add virtual calories for BMR burned before registration
+  const isRegistrationDay = (() => {
+    const createdAt = profile.createdAt;
+    if (!createdAt) return false;
+    const createdDate = new Date(createdAt);
+    return createdDate.getDate() === viewDate.getDate() &&
+           createdDate.getMonth() === viewDate.getMonth() &&
+           createdDate.getFullYear() === viewDate.getFullYear();
+  })();
+
+  const virtualCalories = isRegistrationDay && profile.createdAt
+    ? (() => {
+        // Calculate BMR burned from midnight to registration time
+        const createdAt = new Date(profile.createdAt);
+        const hoursBeforeRegistration = createdAt.getHours() + createdAt.getMinutes() / 60;
+        return Math.round((effectiveBmr / 24) * hoursBeforeRegistration);
+      })()
+    : 0;
+
+  const actualCaloriesIn = displayedMealLogs.reduce((acc, log) => acc + log.totalCalories, 0);
+  const totalCaloriesIn = actualCaloriesIn + virtualCalories;
   const netCalories = totalCaloriesIn - (isToday(viewDate) ? totalCaloriesBurned : profile.bmr + exerciseCaloriesBurned);
   // For today, use time-based BMR to match Predicted Weight calculation; for past days, use full BMR
   const predictedWeightChange = (totalCaloriesIn - bmrBurnedSoFar - exerciseCaloriesBurned) / CALORIES_PER_KG_FAT; // kg

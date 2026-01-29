@@ -22,6 +22,7 @@ export interface UserProfile {
   bmr: number;
   tdee: number;
   avatarColor?: string; // For UI
+  createdAt: number; // timestamp when profile was first created (never changes)
   lastWeightUpdate: number; // timestamp of last manual weight update
   ageLastUpdatedYear: number; // Year when age was last updated (for auto-increment)
   dailyExerciseGoal: number; // Daily exercise calorie burn goal (default 300)
