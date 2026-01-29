@@ -447,7 +447,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="mb-3">
               <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span className="flex items-center gap-1"><Clock size={10}/> BMR Burn</span>
-                  <span>{bmrBurnedSoFar} / {profile.bmr}</span>
+                  <span>{bmrBurnedSoFar} / {effectiveBmr}</span>
               </div>
               <div className="w-full bg-gray-800 rounded-full h-2">
                 <div 
