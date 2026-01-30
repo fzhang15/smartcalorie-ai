@@ -132,21 +132,46 @@ const Dashboard: React.FC<DashboardProps> = ({
     return date > today;
   };
 
-  const isBeforeRegistration = (date: Date) => {
-    if (!profile.createdAt) return false;
-    const registrationDate = new Date(profile.createdAt);
-    registrationDate.setHours(0, 0, 0, 0);
+  // Find the earliest date with data (either from logs or profile creation)
+  const earliestDataDate = useMemo(() => {
+    const dates: number[] = [];
+    
+    // Add earliest meal log
+    if (logs.length > 0) {
+      const earliestMeal = Math.min(...logs.map(log => log.timestamp));
+      dates.push(earliestMeal);
+    }
+    
+    // Add earliest exercise log
+    if (exerciseLogs.length > 0) {
+      const earliestExercise = Math.min(...exerciseLogs.map(log => log.timestamp));
+      dates.push(earliestExercise);
+    }
+    
+    // Add profile creation date as fallback
+    if (profile.createdAt) {
+      dates.push(profile.createdAt);
+    }
+    
+    if (dates.length === 0) return null;
+    
+    const earliest = new Date(Math.min(...dates));
+    earliest.setHours(0, 0, 0, 0);
+    return earliest;
+  }, [logs, exerciseLogs, profile.createdAt]);
+
+  const isBeforeEarliestData = (date: Date) => {
+    if (!earliestDataDate) return false;
     const checkDate = new Date(date);
     checkDate.setHours(0, 0, 0, 0);
-    return checkDate < registrationDate;
+    return checkDate < earliestDataDate;
   };
 
-  const isAtRegistrationDate = () => {
-    if (!profile.createdAt) return false;
-    const registrationDate = new Date(profile.createdAt);
-    return viewDate.getDate() === registrationDate.getDate() &&
-           viewDate.getMonth() === registrationDate.getMonth() &&
-           viewDate.getFullYear() === registrationDate.getFullYear();
+  const isAtEarliestDataDate = () => {
+    if (!earliestDataDate) return false;
+    return viewDate.getDate() === earliestDataDate.getDate() &&
+           viewDate.getMonth() === earliestDataDate.getMonth() &&
+           viewDate.getFullYear() === earliestDataDate.getFullYear();
   };
 
   const hasLogsOnDate = (date: Date) => {
@@ -185,7 +210,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       const isSelected = isSameDay(date, viewDate);
       const isTodayDate = isSameDay(date, today);
       const isFuture = isFutureDate(date);
-      const isPast = isBeforeRegistration(date);
+      const isPast = isBeforeEarliestData(date);
       const isDisabled = isFuture || isPast;
       const hasLogs = hasLogsOnDate(date);
 
@@ -391,8 +416,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="flex items-center justify-between mb-4 bg-gray-50 p-1 rounded-xl relative">
             <button 
                 onClick={() => navigateDate(-1)} 
-                disabled={isAtRegistrationDate()}
-                className={`p-2 rounded-lg transition-all ${isAtRegistrationDate() ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-white hover:text-brand-600'}`}
+                disabled={isAtEarliestDataDate()}
+                className={`p-2 rounded-lg transition-all ${isAtEarliestDataDate() ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-white hover:text-brand-600'}`}
             >
                 <ChevronLeft size={20} />
             </button>
