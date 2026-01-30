@@ -652,7 +652,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {log.imageUrl ? (
                     <img 
                       src={log.imageUrl} 
-                      className="w-16 h-16 rounded-lg object-cover bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity" 
+                      className="w-16 h-16 rounded-lg object-cover bg-gray-100 cursor-pointer active:opacity-70 active:scale-95 transition-all" 
                       alt="meal"
                       onClick={() => setSelectedImage(log.imageUrl)}
                     />
