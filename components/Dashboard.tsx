@@ -45,6 +45,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
+  
+  // State for image lightbox
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Close calendar when clicking outside
   useEffect(() => {
@@ -647,7 +650,12 @@ const Dashboard: React.FC<DashboardProps> = ({
             {displayedMealLogs.slice().reverse().map((log) => (
               <div key={log.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 relative group">
                 {log.imageUrl ? (
-                    <img src={log.imageUrl} className="w-16 h-16 rounded-lg object-cover bg-gray-100" alt="meal" />
+                    <img 
+                      src={log.imageUrl} 
+                      className="w-16 h-16 rounded-lg object-cover bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity" 
+                      alt="meal"
+                      onClick={() => setSelectedImage(log.imageUrl)}
+                    />
                 ) : (
                     <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
                         <Utensils size={24}/>
@@ -693,6 +701,20 @@ const Dashboard: React.FC<DashboardProps> = ({
           impactHistory={impactHistory}
           onClose={() => setShowImpactHistory(false)}
         />
+      )}
+
+      {/* Image Lightbox */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center animate-in fade-in duration-200 cursor-pointer"
+          onClick={() => setSelectedImage(null)}
+        >
+          <img 
+            src={selectedImage} 
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+            alt="Meal preview"
+          />
+        </div>
       )}
 
       {/* FAB - Only show if viewing Today */}
