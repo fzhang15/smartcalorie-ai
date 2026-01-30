@@ -653,6 +653,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <img 
                       src={log.imageUrl} 
                       className="w-16 h-16 rounded-lg object-cover bg-gray-100 cursor-pointer active:opacity-70 active:scale-95 transition-all" 
+                      style={{ touchAction: 'manipulation' }}
                       alt="meal"
                       onClick={() => setSelectedImage(log.imageUrl)}
                     />
