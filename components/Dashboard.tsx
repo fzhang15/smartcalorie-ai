@@ -102,9 +102,13 @@ const Dashboard: React.FC<DashboardProps> = ({
     setShowCalendar(false);
   };
 
-  const openCalendar = () => {
-    setCalendarMonth(new Date(viewDate));
-    setShowCalendar(true);
+  const toggleCalendar = () => {
+    if (showCalendar) {
+      setShowCalendar(false);
+    } else {
+      setCalendarMonth(new Date(viewDate));
+      setShowCalendar(true);
+    }
   };
 
   // Calendar helper functions
@@ -126,6 +130,23 @@ const Dashboard: React.FC<DashboardProps> = ({
     const today = new Date();
     today.setHours(23, 59, 59, 999);
     return date > today;
+  };
+
+  const isBeforeRegistration = (date: Date) => {
+    if (!profile.createdAt) return false;
+    const registrationDate = new Date(profile.createdAt);
+    registrationDate.setHours(0, 0, 0, 0);
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate < registrationDate;
+  };
+
+  const isAtRegistrationDate = () => {
+    if (!profile.createdAt) return false;
+    const registrationDate = new Date(profile.createdAt);
+    return viewDate.getDate() === registrationDate.getDate() &&
+           viewDate.getMonth() === registrationDate.getMonth() &&
+           viewDate.getFullYear() === registrationDate.getFullYear();
   };
 
   const hasLogsOnDate = (date: Date) => {
@@ -164,13 +185,15 @@ const Dashboard: React.FC<DashboardProps> = ({
       const isSelected = isSameDay(date, viewDate);
       const isTodayDate = isSameDay(date, today);
       const isFuture = isFutureDate(date);
+      const isPast = isBeforeRegistration(date);
+      const isDisabled = isFuture || isPast;
       const hasLogs = hasLogsOnDate(date);
 
       days.push(
         <button
           key={day}
-          onClick={() => !isFuture && selectDate(date)}
-          disabled={isFuture}
+          onClick={() => !isDisabled && selectDate(date)}
+          disabled={isDisabled}
           className="w-11 h-12 flex flex-col items-center justify-center"
         >
           <span className={`w-11 h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center
@@ -178,14 +201,14 @@ const Dashboard: React.FC<DashboardProps> = ({
               ? 'bg-brand-500 text-white' 
               : isTodayDate 
                 ? 'bg-brand-100 text-brand-600 font-bold' 
-                : isFuture 
+                : isDisabled 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
             {day}
           </span>
-          {hasLogs && !isFuture && (
+          {hasLogs && !isDisabled && (
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 -mt-1"></span>
           )}
         </button>
@@ -366,11 +389,15 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Date Navigator */}
         <div className="flex items-center justify-between mb-4 bg-gray-50 p-1 rounded-xl relative">
-            <button onClick={() => navigateDate(-1)} className="p-2 text-gray-500 hover:bg-white hover:text-brand-600 rounded-lg transition-all">
+            <button 
+                onClick={() => navigateDate(-1)} 
+                disabled={isAtRegistrationDate()}
+                className={`p-2 rounded-lg transition-all ${isAtRegistrationDate() ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-white hover:text-brand-600'}`}
+            >
                 <ChevronLeft size={20} />
             </button>
             <button 
-              onClick={openCalendar}
+              onClick={toggleCalendar}
               className="flex items-center gap-2 font-semibold text-gray-700 hover:bg-white px-3 py-1.5 rounded-lg transition-all"
             >
                 <Calendar size={16} className="text-brand-500"/>
