@@ -137,40 +137,42 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Current Weight</label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                  placeholder={formData.weightUnit === 'lbs' ? '154' : '70'}
-                  value={weightInput || ''}
-                  onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
-                />
+              <div className="space-y-3">
+                {/* Unit selector - full width for visibility */}
                 <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => handleChange('weightUnit', 'kg')}
-                    className={`px-4 py-2 font-medium transition-colors ${
+                    className={`flex-1 py-3 font-medium transition-colors ${
                       formData.weightUnit === 'kg'
                         ? 'bg-brand-500 text-white'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    kg
+                    kg (kilograms)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChange('weightUnit', 'lbs')}
-                    className={`px-4 py-2 font-medium transition-colors ${
+                    className={`flex-1 py-3 font-medium transition-colors ${
                       formData.weightUnit === 'lbs'
                         ? 'bg-brand-500 text-white'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    lbs
+                    lbs (pounds)
                   </button>
                 </div>
+                {/* Weight input */}
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                  placeholder={formData.weightUnit === 'lbs' ? 'e.g. 154' : 'e.g. 70'}
+                  value={weightInput || ''}
+                  onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
+                />
               </div>
             </div>
           </div>
