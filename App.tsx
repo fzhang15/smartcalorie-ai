@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<'loading' | 'user-select' | 'onboarding' | 'dashboard'>('loading');
   const [showLogger, setShowLogger] = useState(false);
   const [showWeightInput, setShowWeightInput] = useState(false);
+  const [suggestedWeight, setSuggestedWeight] = useState<number | null>(null);
   const [showExerciseLogger, setShowExerciseLogger] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
@@ -562,7 +563,10 @@ const App: React.FC = () => {
             impactHistory={impactHistory}
             onOpenLogger={() => setShowLogger(true)}
             onOpenExerciseLogger={() => setShowExerciseLogger(true)}
-            onUpdateWeight={() => setShowWeightInput(true)}
+            onUpdateWeight={(suggested) => {
+              setSuggestedWeight(suggested);
+              setShowWeightInput(true);
+            }}
             onEditProfile={() => setShowProfileEditor(true)}
             onReset={handleResetProfile}
             onDeleteLog={handleDeleteLog}
@@ -585,10 +589,13 @@ const App: React.FC = () => {
 
           {showWeightInput && (
             <WeightInput
-              currentWeight={profile.weight}
+              currentWeight={suggestedWeight ?? profile.weight}
               weightUnit={profile.weightUnit}
               onSave={handleUpdateWeight}
-              onClose={() => setShowWeightInput(false)}
+              onClose={() => {
+                setShowWeightInput(false);
+                setSuggestedWeight(null);
+              }}
             />
           )}
 

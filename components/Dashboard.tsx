@@ -12,7 +12,7 @@ interface DashboardProps {
   impactHistory: DailyImpactRecord[];
   onOpenLogger: () => void;
   onOpenExerciseLogger: () => void;
-  onUpdateWeight: () => void;
+  onUpdateWeight: (suggestedWeight: number) => void;
   onEditProfile: () => void;
   onReset: () => void;
   onDeleteLog: (logId: string) => void;
@@ -555,7 +555,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </button>
 
         <button 
-            onClick={onUpdateWeight}
+            onClick={() => onUpdateWeight(predictedWeight)}
             className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center active:scale-95 transition-transform"
         >
             <div className="p-2 rounded-full mb-2 bg-blue-50 text-blue-500">
