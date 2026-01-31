@@ -45,6 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
+  const calendarToggleRef = useRef<HTMLButtonElement>(null);
   
   // State for image lightbox
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -52,7 +53,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Close calendar when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Ignore clicks on the toggle button (let toggleCalendar handle it)
+      if (calendarToggleRef.current && calendarToggleRef.current.contains(target)) {
+        return;
+      }
+      if (calendarRef.current && !calendarRef.current.contains(target)) {
         setShowCalendar(false);
       }
     };
@@ -425,6 +431,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <ChevronLeft size={20} />
             </button>
             <button 
+              ref={calendarToggleRef}
               onClick={toggleCalendar}
               className="flex items-center gap-2 font-semibold text-gray-700 hover:bg-white px-3 py-1.5 rounded-lg transition-all"
             >
