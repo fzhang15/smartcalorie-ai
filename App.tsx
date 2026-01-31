@@ -224,11 +224,17 @@ const App: React.FC = () => {
     today.setHours(0, 0, 0, 0);
     const todayKey = formatDateKey(today);
 
-    // Find the earliest log date
+    // Find the earliest log date, but never before user's createdAt
     const allTimestamps = [...logs.map(l => l.timestamp), ...exerciseLogs.map(l => l.timestamp)];
     if (allTimestamps.length === 0) return;
     
-    const earliestLog = new Date(Math.min(...allTimestamps));
+    const earliestLogTime = Math.min(...allTimestamps);
+    const createdAtDay = new Date(profile.createdAt || Date.now());
+    createdAtDay.setHours(0, 0, 0, 0);
+    
+    // Start from the later of: earliest log date or user registration date
+    const startTime = Math.max(earliestLogTime, createdAtDay.getTime());
+    const earliestLog = new Date(startTime);
     earliestLog.setHours(0, 0, 0, 0);
 
     // Calculate daily impact for a specific date
