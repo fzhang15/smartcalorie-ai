@@ -22,11 +22,22 @@ const getDefaultMealType = (): MealLog['mealType'] => {
   return 'snack';                                       // Other times
 };
 
+// Analyzing tips that rotate during AI analysis
+const ANALYZING_TIPS = [
+  "Identifying food items...",
+  "Analyzing nutritional content...",
+  "Calculating calories...",
+  "AI is working hard...",
+  "Detecting food types...",
+  "Estimating portion sizes...",
+];
+
 const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedItems, setAnalyzedItems] = useState<FoodItem[]>([]);
   const [mealType, setMealType] = useState<MealLog['mealType']>(getDefaultMealType());
+  const [analyzingTipIndex, setAnalyzingTipIndex] = useState(0);
   
   // Portion/Sharing State
   const [portionOption, setPortionOption] = useState<PortionOption>(1);
@@ -48,6 +59,20 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
       stopCamera();
     };
   }, []);
+
+  // Rotate analyzing tips while analyzing
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setAnalyzingTipIndex(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setAnalyzingTipIndex(prev => (prev + 1) % ANALYZING_TIPS.length);
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [isAnalyzing]);
 
   const startCamera = async () => {
     try {
@@ -258,8 +283,42 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
               </button>
             </div>
           ) : (
-            <div className="relative rounded-xl overflow-hidden bg-gray-100 aspect-square flex items-center justify-center">
+            <div className={`relative rounded-xl overflow-hidden bg-gray-100 aspect-square flex items-center justify-center ${isAnalyzing ? 'ring-4 ring-brand-400 animate-pulse' : ''}`}>
               <img src={image} alt="Meal" className="w-full h-full object-cover" />
+              
+              {/* Scanning animation overlay during analysis */}
+              {isAnalyzing && (
+                <>
+                  {/* Scanning line */}
+                  <div 
+                    className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand-400 to-transparent opacity-80"
+                    style={{
+                      animation: 'scanLine 2s ease-in-out infinite',
+                    }}
+                  />
+                  {/* Overlay with shimmer effect */}
+                  <div 
+                    className="absolute inset-0 bg-gradient-to-b from-brand-500/10 via-transparent to-brand-500/10"
+                    style={{
+                      animation: 'shimmer 1.5s ease-in-out infinite',
+                    }}
+                  />
+                  {/* Corner indicators */}
+                  <div className="absolute inset-2 border-2 border-brand-400/50 rounded-lg animate-pulse">
+                    <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-2 border-l-2 border-brand-500 rounded-tl" />
+                    <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-2 border-r-2 border-brand-500 rounded-tr" />
+                    <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-brand-500 rounded-bl" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-brand-500 rounded-br" />
+                  </div>
+                  {/* Status text on image */}
+                  <div className="absolute bottom-4 left-0 right-0 text-center">
+                    <span className="bg-black/60 text-white text-sm font-medium px-4 py-2 rounded-full backdrop-blur-sm">
+                      {ANALYZING_TIPS[analyzingTipIndex]}
+                    </span>
+                  </div>
+                </>
+              )}
+              
               {analyzedItems.length === 0 && !isAnalyzing && (
                  <button 
                  onClick={() => setImage(null)}
@@ -273,15 +332,16 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
 
           {/* Analysis State */}
           {image && analyzedItems.length === 0 && (
-            <div className="text-center">
+            <div className="text-center space-y-3">
               <button
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
-                className="w-full bg-brand-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-70"
+                className={`w-full bg-brand-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${isAnalyzing ? 'opacity-90' : 'hover:bg-brand-700'}`}
               >
                 {isAnalyzing ? (
                   <>
-                    <Loader2 className="animate-spin" size={20} /> Analyzing with AI...
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="animate-pulse">{ANALYZING_TIPS[analyzingTipIndex]}</span>
                   </>
                 ) : (
                   <>
@@ -289,6 +349,11 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                   </>
                 )}
               </button>
+              {isAnalyzing && (
+                <p className="text-xs text-gray-500 animate-pulse">
+                  This may take a few seconds...
+                </p>
+              )}
             </div>
           )}
 
@@ -467,3 +532,23 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
 };
 
 export default MealLogger;
+
+// Add CSS keyframes for scanning animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes scanLine {
+    0%, 100% { top: 0; opacity: 0; }
+    10% { opacity: 0.8; }
+    50% { top: calc(100% - 4px); opacity: 0.8; }
+    60% { opacity: 0; }
+  }
+  
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+  }
+`;
+if (!document.querySelector('#meal-logger-animations')) {
+  style.id = 'meal-logger-animations';
+  document.head.appendChild(style);
+}
