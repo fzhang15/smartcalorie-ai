@@ -444,13 +444,21 @@ const App: React.FC = () => {
     const predictionError = predictedChange - actualChange; // Positive = overpredicted weight gain
     
     // Update calibration factor with exponential smoothing
+    // Only adjust when prediction error is significant (>10%)
     let newCalibrationFactor = profile.calibrationFactor || 1.0;
     if (Math.abs(predictedChange) > 0.001) {
-      const thisMeasurementFactor = actualChange / predictedChange;
-      // Clamp to reasonable range (0.5 to 1.5)
-      const clampedFactor = Math.max(0.5, Math.min(1.5, thisMeasurementFactor));
-      // Exponential smoothing: 70% old, 30% new
-      newCalibrationFactor = 0.7 * newCalibrationFactor + 0.3 * clampedFactor;
+      const relativeError = Math.abs(actualChange - predictedChange) / Math.abs(predictedChange);
+      
+      // Only calibrate when error exceeds 10% threshold
+      // Small errors may just be measurement noise (water weight, scale variance, etc.)
+      if (relativeError > 0.1) {
+        const thisMeasurementFactor = actualChange / predictedChange;
+        // Clamp to reasonable range (0.5 to 1.5)
+        const clampedFactor = Math.max(0.5, Math.min(1.5, thisMeasurementFactor));
+        // Exponential smoothing: 70% old, 30% new
+        newCalibrationFactor = 0.7 * newCalibrationFactor + 0.3 * clampedFactor;
+      }
+      // If error <= 10%, keep current calibration factor (prediction was accurate enough)
     }
     
     // Correct historical impact records
