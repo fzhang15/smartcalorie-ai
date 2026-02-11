@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users } from 'lucide-react';
-import { analyzeFoodImage } from '../services/geminiService';
+import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users, PenLine } from 'lucide-react';
+import { analyzeFoodImage, analyzeFoodDescription } from '../services/geminiService';
 import { FoodItem, MealLog } from '../types';
 
 type PortionOption = 1 | 2 | 3 | 4 | 'custom';
@@ -32,12 +32,46 @@ const ANALYZING_TIPS = [
   "Estimating portion sizes...",
 ];
 
+type InputMode = 'select' | 'camera' | 'image' | 'text';
+
+const MAX_IMAGE_SIZE = 1024;
+const JPEG_QUALITY = 0.7;
+
+/** Resize and compress an image data URL to max dimensions and JPEG quality */
+const compressImage = (dataUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      // Scale down if either dimension exceeds max
+      if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+        const scale = MAX_IMAGE_SIZE / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Failed to get canvas context'));
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+};
+
 const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedItems, setAnalyzedItems] = useState<FoodItem[]>([]);
   const [mealType, setMealType] = useState<MealLog['mealType']>(getDefaultMealType());
   const [analyzingTipIndex, setAnalyzingTipIndex] = useState(0);
+  
+  // Text description state
+  const [inputMode, setInputMode] = useState<InputMode>('select');
+  const [textDescription, setTextDescription] = useState('');
   
   // Portion/Sharing State
   const [portionOption, setPortionOption] = useState<PortionOption>(1);
@@ -102,7 +136,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
     setIsCameraOpen(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current) {
       const video = videoRef.current;
       const videoWidth = video.videoWidth;
@@ -113,31 +147,36 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
       const offsetX = (videoWidth - size) / 2;
       const offsetY = (videoHeight - size) / 2;
       
-      // Create canvas with square dimensions
+      // Crop to square, capped at MAX_IMAGE_SIZE
+      const outputSize = Math.min(size, MAX_IMAGE_SIZE);
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = outputSize;
+      canvas.height = outputSize;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Draw only the square portion from the center of the video
         ctx.drawImage(
           video,
-          offsetX, offsetY, size, size,  // Source: square from center
-          0, 0, size, size               // Destination: full canvas
+          offsetX, offsetY, size, size,
+          0, 0, outputSize, outputSize
         );
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
         setImage(dataUrl);
         stopCamera();
       }
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          const compressed = await compressImage(reader.result as string);
+          setImage(compressed);
+        } catch {
+          setImage(reader.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -150,7 +189,22 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
       const items = await analyzeFoodImage(image);
       setAnalyzedItems(items);
     } catch (error) {
-      alert("Failed to analyze image. Please try again.");
+      const msg = error instanceof Error ? error.message : "Failed to analyze image. Please try again.";
+      alert(msg);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeText = async () => {
+    if (!textDescription.trim()) return;
+    setIsAnalyzing(true);
+    try {
+      const items = await analyzeFoodDescription(textDescription.trim());
+      setAnalyzedItems(items);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to analyze description. Please try again.";
+      alert(msg);
     } finally {
       setIsAnalyzing(false);
     }
@@ -173,6 +227,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
       id: Date.now().toString(),
       timestamp: Date.now(),
       imageUrl: image || undefined,
+      description: textDescription.trim() || undefined,
       items: adjustedItems,
       totalCalories: adjustedTotalCalories,
       mealType,
@@ -241,7 +296,47 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                     </div>
                 </div>
             </div>
-          ) : !image ? (
+          ) : inputMode === 'text' && analyzedItems.length === 0 ? (
+            /* Text Description Input */
+            <div className="space-y-4">
+              <textarea
+                value={textDescription}
+                onChange={(e) => setTextDescription(e.target.value)}
+                placeholder="Describe what you ate, e.g.: 12 beef dumplings and a bowl of egg drop soup"
+                className="w-full h-32 p-3 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent text-gray-800 placeholder-gray-400"
+                disabled={isAnalyzing}
+              />
+              <button
+                onClick={handleAnalyzeText}
+                disabled={isAnalyzing || !textDescription.trim()}
+                className={`w-full bg-brand-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${isAnalyzing ? 'opacity-90' : !textDescription.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-700'}`}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    <span className="animate-pulse">{ANALYZING_TIPS[analyzingTipIndex]}</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={20} /> Analyze Food
+                  </>
+                )}
+              </button>
+              {isAnalyzing && (
+                <p className="text-xs text-gray-500 animate-pulse text-center">
+                  This may take a few seconds...
+                </p>
+              )}
+              {!isAnalyzing && (
+                <button
+                  onClick={() => { setInputMode('select'); setTextDescription(''); }}
+                  className="w-full text-sm text-gray-500 hover:text-gray-700 py-2"
+                >
+                  ← Back to options
+                </button>
+              )}
+            </div>
+          ) : !image && inputMode === 'select' ? (
             <div className="space-y-4">
                {/* Camera Option */}
                <button 
@@ -280,6 +375,24 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                     className="hidden" 
                     onChange={handleFileUpload}
                 />
+              </button>
+
+              <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-gray-500">or</span>
+                    </div>
+                </div>
+
+               {/* Text Description Option */}
+               <button 
+                onClick={() => setInputMode('text')}
+                className="w-full border border-gray-200 rounded-xl p-4 flex items-center justify-center gap-2 hover:bg-gray-50 text-gray-600 font-medium transition-colors"
+              >
+                <PenLine size={20} />
+                Describe Your Meal
               </button>
             </div>
           ) : (
@@ -378,7 +491,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-gray-700">
                   <Users size={16} />
-                  <span className="text-sm font-medium">用餐人数</span>
+                  <span className="text-sm font-medium">Diners</span>
                 </div>
                 <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
                   {([1, 2, 3, 4, 'custom'] as const).map(option => (
@@ -391,7 +504,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {option === 'custom' ? '自定义' : `${option}人`}
+                      {option === 'custom' ? 'Custom' : `${option}P`}
                     </button>
                   ))}
                 </div>
@@ -400,7 +513,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                 {portionOption === 'custom' && (
                   <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">我的份额</span>
+                      <span className="text-sm text-gray-600">My portion</span>
                       <span className="text-sm font-bold text-brand-600">{customRatio}%</span>
                     </div>
                     <input
@@ -422,7 +535,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                 {/* Show portion info when not 100% */}
                 {portionRatio < 1 && (
                   <p className="text-xs text-gray-500 text-center">
-                    热量将按 {Math.round(portionRatio * 100)}% 计算 (原始热量 × {portionRatio.toFixed(2)})
+                    Calories calculated at {Math.round(portionRatio * 100)}% (original × {portionRatio.toFixed(2)})
                   </p>
                 )}
               </div>
@@ -508,7 +621,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                   <span className="font-semibold text-brand-900">Total Estimate</span>
                   {portionRatio < 1 && (
                     <p className="text-xs text-brand-600/70">
-                      原始: {analyzedItems.reduce((a, b) => a + b.calories, 0)} kcal × {Math.round(portionRatio * 100)}%
+                      Original: {analyzedItems.reduce((a, b) => a + b.calories, 0)} kcal × {Math.round(portionRatio * 100)}%
                     </p>
                   )}
                 </div>

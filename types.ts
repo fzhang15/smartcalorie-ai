@@ -47,6 +47,7 @@ export interface MealLog {
   id: string;
   timestamp: number;
   imageUrl?: string;
+  description?: string; // Text description when meal is logged via text input
   items: FoodItem[];
   totalCalories: number;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';

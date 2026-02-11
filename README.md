@@ -6,9 +6,13 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 
 ### 📸 AI-Powered Food Recognition
 - Take a photo of your meal and let Gemini AI analyze it
+- **Text-based meal input** — describe what you ate (e.g., "12 beef dumplings and a bowl of egg drop soup") and get AI-estimated nutrition
 - Automatic detection of food items with calorie and macro estimates
 - Supports breakfast, lunch, dinner, and snacks
 - Nutritional values rounded to whole numbers for clean display
+- **Automatic image compression** — photos resized to 1024×1024 max and compressed to JPEG 0.7 for reliable uploads
+- **Retry with backoff** — transient API errors (rate limits, network issues, server errors) automatically retried up to 2 times
+- **Descriptive error messages** — users see specific error reasons (rate limit, network, image too large, etc.) instead of generic failures
 
 ### 🏃 Exercise Tracking
 - Log workouts with various exercise types:
@@ -146,7 +150,8 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 ### Meal Log
 - Timestamp, Meal type
 - Food items with calories and macros
-- Optional photo
+- Optional photo or text description
+- Portion ratio for shared meals
 
 ### Exercise Log
 - Timestamp, Exercise type

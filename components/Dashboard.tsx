@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { UserProfile, MealLog, ExerciseLog, DailyImpactRecord } from '../types';
 import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs } from '../constants';
-import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3 } from 'lucide-react';
+import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3, PenLine } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ImpactHistoryModal from './ImpactHistoryModal';
 
@@ -668,6 +668,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                       }}
                       onClick={() => setSelectedImage(log.imageUrl)}
                     />
+                ) : log.description ? (
+                    <div className="w-16 h-16 rounded-lg bg-brand-50 flex items-center justify-center text-brand-400" title={log.description}>
+                        <PenLine size={24}/>
+                    </div>
                 ) : (
                     <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
                         <Utensils size={24}/>
