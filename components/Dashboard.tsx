@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { UserProfile, MealLog, ExerciseLog, DailyImpactRecord } from '../types';
-import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs } from '../constants';
-import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3, PenLine } from 'lucide-react';
+import { UserProfile, MealLog, ExerciseLog, DailyImpactRecord, WaterLog } from '../types';
+import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs, formatWaterAmount } from '../constants';
+import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3, PenLine, Droplets } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ImpactHistoryModal from './ImpactHistoryModal';
 
@@ -9,28 +9,34 @@ interface DashboardProps {
   profile: UserProfile;
   logs: MealLog[];
   exerciseLogs: ExerciseLog[];
+  waterLogs: WaterLog[];
   impactHistory: DailyImpactRecord[];
   onOpenLogger: () => void;
   onOpenExerciseLogger: () => void;
+  onOpenWaterTracker: () => void;
   onUpdateWeight: (suggestedWeight: number) => void;
   onEditProfile: () => void;
   onReset: () => void;
   onDeleteLog: (logId: string) => void;
   onDeleteExerciseLog: (logId: string) => void;
+  onDeleteWaterLog: (logId: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   profile, 
   logs, 
   exerciseLogs,
+  waterLogs,
   impactHistory,
   onOpenLogger, 
   onOpenExerciseLogger,
+  onOpenWaterTracker,
   onUpdateWeight,
   onEditProfile,
   onReset, 
   onDeleteLog,
-  onDeleteExerciseLog 
+  onDeleteExerciseLog,
+  onDeleteWaterLog 
 }) => {
   // State for the currently viewed date (defaults to today)
   const [viewDate, setViewDate] = useState(new Date());
@@ -316,6 +322,19 @@ const Dashboard: React.FC<DashboardProps> = ({
              logDate.getFullYear() === viewDate.getFullYear();
   });
 
+  // Filter water logs based on the viewed date
+  const displayedWaterLogs = waterLogs.filter(log => {
+      const logDate = new Date(log.timestamp);
+      return logDate.getDate() === viewDate.getDate() &&
+             logDate.getMonth() === viewDate.getMonth() &&
+             logDate.getFullYear() === viewDate.getFullYear();
+  });
+
+  // Calculate water intake for the day
+  const waterIntakeMl = displayedWaterLogs.reduce((acc, log) => acc + log.amountMl, 0);
+  const waterGoalMl = profile.dailyWaterGoalMl || 2500;
+  const waterUnit = profile.waterUnit || 'ml';
+
   // Calculate exercise calories for the day
   const exerciseCaloriesBurned = displayedExerciseLogs.reduce((acc, log) => acc + log.caloriesBurned, 0);
 
@@ -534,6 +553,24 @@ const Dashboard: React.FC<DashboardProps> = ({
                 ></div>
               </div>
             </div>
+
+            {/* Water Intake - Only show when water tracking is enabled */}
+            {profile.waterTrackingEnabled && (
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span className="flex items-center gap-1"><Droplets size={10}/> Water</span>
+                    <span>{formatWaterAmount(waterIntakeMl, waterUnit)} / {formatWaterAmount(waterGoalMl, waterUnit)}</span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-1000 ${
+                      waterIntakeMl >= waterGoalMl ? 'bg-green-500' : 'bg-blue-400'
+                    }`}
+                    style={{ width: `${Math.min((waterIntakeMl / waterGoalMl) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -582,6 +619,40 @@ const Dashboard: React.FC<DashboardProps> = ({
             )}
         </button>
       </div>
+
+      {/* Water Logs Section - Only show when water tracking is enabled */}
+      {profile.waterTrackingEnabled && displayedWaterLogs.length > 0 && (
+        <div className="px-6 pt-6">
+          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
+              <Droplets size={18} className="text-blue-500"/> 
+              Water
+          </h3>
+          <div className="space-y-2">
+            {displayedWaterLogs.slice().reverse().map((log) => (
+              <div key={log.id} className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <Droplets size={16}/>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{formatWaterAmount(log.amountMl, waterUnit)}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(log.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => onDeleteWaterLog(log.id)}
+                  className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
+                  title="Delete water log"
+                >
+                  <Trash2 size={14}/>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Exercise Logs Section */}
       {displayedExerciseLogs.length > 0 && (
@@ -738,18 +809,27 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="fixed bottom-10 left-0 right-0 flex justify-center gap-3 z-40 pointer-events-none">
             <button
               onClick={onOpenLogger}
-              className="bg-brand-600 text-white rounded-full p-4 shadow-2xl shadow-brand-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 px-5"
+              className={`bg-brand-600 text-white rounded-full p-4 shadow-2xl shadow-brand-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 ${profile.waterTrackingEnabled ? 'px-4' : 'px-5'}`}
             >
               <Utensils size={20} />
               <span className="font-semibold">Meal</span>
             </button>
             <button
               onClick={onOpenExerciseLogger}
-              className="bg-orange-500 text-white rounded-full p-4 shadow-2xl shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 px-5"
+              className={`bg-orange-500 text-white rounded-full p-4 shadow-2xl shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 ${profile.waterTrackingEnabled ? 'px-4' : 'px-5'}`}
             >
               <Activity size={20} />
               <span className="font-semibold">Exercise</span>
             </button>
+            {profile.waterTrackingEnabled && (
+              <button
+                onClick={onOpenWaterTracker}
+                className="bg-blue-500 text-white rounded-full p-4 shadow-2xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 px-4"
+              >
+                <Droplets size={20} />
+                <span className="font-semibold">Water</span>
+              </button>
+            )}
         </div>
       )}
     </div>

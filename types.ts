@@ -27,6 +27,9 @@ export interface UserProfile {
   ageLastUpdatedYear: number; // Year when age was last updated (for auto-increment)
   dailyExerciseGoal: number; // Daily exercise calorie burn goal (default 300)
   calibrationFactor: number; // Adjustment factor for BMR accuracy (default 1.0, learned from weight updates)
+  waterTrackingEnabled: boolean; // Whether water tracking is enabled (default false)
+  dailyWaterGoalMl: number; // Daily water intake goal in ml (default 2500)
+  waterUnit: WaterUnit; // User's preferred water unit (default 'ml')
 }
 
 export interface UserSummary {
@@ -69,6 +72,14 @@ export interface ExerciseLog {
   durationMinutes: number;
   caloriesBurned: number;
 }
+
+export interface WaterLog {
+  id: string;
+  timestamp: number;
+  amountMl: number; // Always stored in ml internally
+}
+
+export type WaterUnit = 'ml' | 'oz';
 
 export interface DailyImpactRecord {
   date: string; // YYYY-MM-DD format

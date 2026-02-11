@@ -22,6 +22,16 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Automatic calorie burn calculation based on exercise type
 - Exercise calories added to daily burn total
 
+### 💧 Water Tracking (Opt-in)
+- **Disabled by default** — enable in Profile Editor when you want it
+- Quick-add buttons: Cup (250ml), Bottle (500ml), Large (750ml)
+- Custom amount input with ml/oz unit support
+- Blue progress bar in the dashboard stats card
+- Water log section with timestamps and delete support
+- Dedicated 💧 Water FAB button (appears when enabled)
+- Daily goal configurable (default 2,500ml)
+- **No impact on calorie calculations** — purely a hydration tracker
+
 ### ⚖️ Smart Weight Prediction with Calibration
 - Automatic weight prediction based on net calorie history
 - Tracks cumulative calorie surplus/deficit since last weight update
@@ -146,6 +156,9 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Last weight update timestamp for prediction
 - Age last updated year (for auto-increment)
 - Daily exercise goal
+- Water tracking enabled (boolean, default false)
+- Daily water goal in ml (default 2500)
+- Water unit preference (ml or oz)
 
 ### Meal Log
 - Timestamp, Meal type
@@ -157,6 +170,10 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Timestamp, Exercise type
 - Duration in minutes
 - Calculated calories burned
+
+### Water Log
+- Timestamp
+- Amount in ml (stored internally, converted to oz for display when preferred)
 
 ### Daily Impact Record
 - Date (YYYY-MM-DD format)

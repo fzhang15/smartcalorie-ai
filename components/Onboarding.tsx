@@ -50,6 +50,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
         ageLastUpdatedYear: new Date().getFullYear(),
         dailyExerciseGoal: 300, // Default exercise goal
         calibrationFactor: 1.0, // Start with no calibration (BMR used as-is)
+        waterTrackingEnabled: false, // Water tracking off by default
+        dailyWaterGoalMl: 2500, // Default 2500ml
+        waterUnit: 'ml', // Default ml
       });
     }
   };

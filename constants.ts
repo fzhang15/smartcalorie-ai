@@ -1,4 +1,4 @@
-import { ActivityLevel, ExerciseType } from './types';
+import { ActivityLevel, ExerciseType, WaterUnit } from './types';
 
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   [ActivityLevel.Sedentary]: 1.2,
@@ -25,6 +25,25 @@ export const EXERCISE_CALORIES_PER_MIN: Record<ExerciseType, number> = {
   strength: 5,     // ~300 cal/hr
   aerobics: 8,     // ~480 cal/hr
   plank: 4,        // ~240 cal/hr
+};
+
+// Water tracking constants
+export const ML_PER_OZ = 29.5735;
+export const mlToOz = (ml: number) => ml / ML_PER_OZ;
+export const ozToMl = (oz: number) => oz * ML_PER_OZ;
+export const DEFAULT_WATER_GOAL_ML = 2500;
+
+export const WATER_QUICK_ADD = [
+  { label: 'Cup', ml: 250, emoji: '☕' },
+  { label: 'Bottle', ml: 500, emoji: '🥤' },
+  { label: 'Large', ml: 750, emoji: '🫗' },
+];
+
+export const formatWaterAmount = (ml: number, unit: WaterUnit): string => {
+  if (unit === 'oz') {
+    return `${Math.round(mlToOz(ml))} oz`;
+  }
+  return `${Math.round(ml)} ml`;
 };
 
 export const EXERCISE_LABELS: Record<ExerciseType, string> = {

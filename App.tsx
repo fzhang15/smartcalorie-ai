@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, MealLog, UserSummary, ExerciseLog, ActivityLevel, DailyImpactRecord } from './types';
+import { UserProfile, MealLog, UserSummary, ExerciseLog, ActivityLevel, DailyImpactRecord, WaterLog } from './types';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import MealLogger from './components/MealLogger';
 import WeightInput from './components/WeightInput';
 import UserSelector from './components/UserSelector';
 import ExerciseLogger from './components/ExerciseLogger';
+import WaterTracker from './components/WaterTracker';
 import ProfileEditor from './components/ProfileEditor';
 import { ACTIVITY_MULTIPLIERS, CALORIES_PER_KG_FAT } from './constants';
 
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLog[]>([]);
   const [impactHistory, setImpactHistory] = useState<DailyImpactRecord[]>([]);
+  const [waterLogs, setWaterLogs] = useState<WaterLog[]>([]);
   
   // UI State
   const [view, setView] = useState<'loading' | 'user-select' | 'onboarding' | 'dashboard'>('loading');
@@ -48,6 +50,7 @@ const App: React.FC = () => {
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [suggestedWeight, setSuggestedWeight] = useState<number | null>(null);
   const [showExerciseLogger, setShowExerciseLogger] = useState(false);
+  const [showWaterTracker, setShowWaterTracker] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Initial Data Load & Migration Logic
@@ -111,6 +114,7 @@ const App: React.FC = () => {
       const storedProfile = localStorage.getItem(`smartcalorie_profile_${currentUserId}`);
       const storedLogs = localStorage.getItem(`smartcalorie_logs_${currentUserId}`);
       const storedExerciseLogs = localStorage.getItem(`smartcalorie_exercise_${currentUserId}`);
+      const storedWaterLogs = localStorage.getItem(`smartcalorie_water_${currentUserId}`);
 
       if (storedProfile) {
         let parsedProfile: UserProfile = JSON.parse(storedProfile);
@@ -143,6 +147,20 @@ const App: React.FC = () => {
         // Migration: Add calibrationFactor if missing
         if (parsedProfile.calibrationFactor === undefined) {
           parsedProfile.calibrationFactor = 1.0;
+          needsSave = true;
+        }
+        
+        // Migration: Add water tracking fields if missing
+        if (parsedProfile.waterTrackingEnabled === undefined) {
+          parsedProfile.waterTrackingEnabled = false;
+          needsSave = true;
+        }
+        if (!parsedProfile.dailyWaterGoalMl) {
+          parsedProfile.dailyWaterGoalMl = 2500;
+          needsSave = true;
+        }
+        if (!parsedProfile.waterUnit) {
+          parsedProfile.waterUnit = 'ml';
           needsSave = true;
         }
         
@@ -202,6 +220,11 @@ const App: React.FC = () => {
         setExerciseLogs(JSON.parse(storedExerciseLogs));
       } else {
         setExerciseLogs([]);
+      }
+      if (storedWaterLogs) {
+        setWaterLogs(JSON.parse(storedWaterLogs));
+      } else {
+        setWaterLogs([]);
       }
       
       // Load impact history
@@ -314,6 +337,12 @@ const App: React.FC = () => {
   }, [exerciseLogs, currentUserId]);
 
   useEffect(() => {
+    if (currentUserId) {
+      localStorage.setItem(`smartcalorie_water_${currentUserId}`, JSON.stringify(waterLogs));
+    }
+  }, [waterLogs, currentUserId]);
+
+  useEffect(() => {
     if (currentUserId && impactHistory.length > 0) {
       localStorage.setItem(`smartcalorie_impact_${currentUserId}`, JSON.stringify(impactHistory));
     }
@@ -340,8 +369,19 @@ const App: React.FC = () => {
     setProfile(newProfile);
     setLogs([]);
     setExerciseLogs([]);
+    setWaterLogs([]);
     setImpactHistory([]);
     setView('dashboard');
+  };
+
+  const handleLogWater = (log: WaterLog) => {
+    setWaterLogs(prev => [...prev, log]);
+  };
+
+  const handleDeleteWaterLog = (logId: string) => {
+    if (window.confirm("Are you sure you want to delete this water log?")) {
+      setWaterLogs(prev => prev.filter(log => log.id !== logId));
+    }
   };
 
   const handleLogMeal = (log: MealLog) => {
@@ -524,6 +564,7 @@ const App: React.FC = () => {
         localStorage.removeItem(`smartcalorie_profile_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_logs_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_exercise_${currentUserId}`);
+        localStorage.removeItem(`smartcalorie_water_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_impact_${currentUserId}`);
         
         // Remove from users list
@@ -535,6 +576,7 @@ const App: React.FC = () => {
         setProfile(null);
         setLogs([]);
         setExerciseLogs([]);
+        setWaterLogs([]);
         setImpactHistory([]);
         
         // After deletion, redirect to onboarding
@@ -574,9 +616,11 @@ const App: React.FC = () => {
             profile={profile}
             logs={logs}
             exerciseLogs={exerciseLogs}
+            waterLogs={waterLogs}
             impactHistory={impactHistory}
             onOpenLogger={() => setShowLogger(true)}
             onOpenExerciseLogger={() => setShowExerciseLogger(true)}
+            onOpenWaterTracker={() => setShowWaterTracker(true)}
             onUpdateWeight={(suggested) => {
               setSuggestedWeight(suggested);
               setShowWeightInput(true);
@@ -585,6 +629,7 @@ const App: React.FC = () => {
             onReset={handleResetProfile}
             onDeleteLog={handleDeleteLog}
             onDeleteExerciseLog={handleDeleteExerciseLog}
+            onDeleteWaterLog={handleDeleteWaterLog}
           />
 
           {showLogger && (
@@ -598,6 +643,22 @@ const App: React.FC = () => {
             <ExerciseLogger
               onLogExercise={handleLogExercise}
               onClose={() => setShowExerciseLogger(false)}
+            />
+          )}
+
+          {showWaterTracker && (
+            <WaterTracker
+              waterUnit={profile.waterUnit || 'ml'}
+              dailyGoalMl={profile.dailyWaterGoalMl || 2500}
+              todayLogs={waterLogs.filter(log => {
+                const today = new Date();
+                const logDate = new Date(log.timestamp);
+                return logDate.getDate() === today.getDate() &&
+                       logDate.getMonth() === today.getMonth() &&
+                       logDate.getFullYear() === today.getFullYear();
+              })}
+              onLogWater={handleLogWater}
+              onClose={() => setShowWaterTracker(false)}
             />
           )}
 

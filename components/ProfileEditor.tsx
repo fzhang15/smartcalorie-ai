@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Check, User } from 'lucide-react';
-import { UserProfile, Gender, WeightUnit } from '../types';
-import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg } from '../constants';
+import { UserProfile, Gender, WeightUnit, WaterUnit } from '../types';
+import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg, mlToOz, ozToMl, DEFAULT_WATER_GOAL_ML, formatWaterAmount } from '../constants';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -18,6 +18,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
     profile.weightUnit === 'lbs' ? Math.round(kgToLbs(profile.weight) * 10) / 10 : profile.weight
   );
   const [dailyExerciseGoal, setDailyExerciseGoal] = useState<number>(profile.dailyExerciseGoal || 300);
+  const [waterTrackingEnabled, setWaterTrackingEnabled] = useState<boolean>(profile.waterTrackingEnabled || false);
+  const [waterUnit, setWaterUnit] = useState<WaterUnit>(profile.waterUnit || 'ml');
+  const [waterGoalInput, setWaterGoalInput] = useState<number>(
+    (profile.waterUnit || 'ml') === 'oz' 
+      ? Math.round(mlToOz(profile.dailyWaterGoalMl || DEFAULT_WATER_GOAL_ML)) 
+      : (profile.dailyWaterGoalMl || DEFAULT_WATER_GOAL_ML)
+  );
 
   const handleSave = () => {
     // Convert weight to kg if needed
@@ -32,6 +39,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
     }
     const newTdee = newBmr * ACTIVITY_MULTIPLIERS[profile.activityLevel];
 
+    // Convert water goal to ml if needed
+    const waterGoalMl = waterUnit === 'oz' ? Math.round(ozToMl(waterGoalInput)) : waterGoalInput;
+
     const updates: Partial<UserProfile> = {
       gender,
       age,
@@ -42,6 +52,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
       tdee: Math.round(newTdee),
       ageLastUpdatedYear: new Date().getFullYear(),
       dailyExerciseGoal,
+      waterTrackingEnabled,
+      waterUnit,
+      dailyWaterGoalMl: waterGoalMl,
     };
 
     // Update lastWeightUpdate if weight changed
@@ -192,6 +205,76 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
               onChange={(e) => setDailyExerciseGoal(parseInt(e.target.value) || 0)}
             />
             <p className="text-xs text-gray-400 mt-1">Target calories to burn through exercise each day</p>
+          </div>
+
+          {/* Water Tracking */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-medium text-gray-700">Water Tracking</label>
+              <button
+                onClick={() => setWaterTrackingEnabled(!waterTrackingEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  waterTrackingEnabled ? 'bg-blue-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    waterTrackingEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            {waterTrackingEnabled && (
+              <div className="space-y-4 pl-0 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Water Goal */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Daily Water Goal</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={waterGoalInput}
+                      onChange={(e) => setWaterGoalInput(parseInt(e.target.value) || 0)}
+                    />
+                    <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                      <button
+                        onClick={() => {
+                          if (waterUnit !== 'ml') {
+                            setWaterGoalInput(Math.round(ozToMl(waterGoalInput)));
+                            setWaterUnit('ml');
+                          }
+                        }}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          waterUnit === 'ml'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        ml
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (waterUnit !== 'oz') {
+                            setWaterGoalInput(Math.round(mlToOz(waterGoalInput)));
+                            setWaterUnit('oz');
+                          }
+                        }}
+                        className={`px-4 py-2 font-medium transition-colors ${
+                          waterUnit === 'oz'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        oz
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Recommended: 2,000–3,000 ml (68–101 oz) per day</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* BMR Preview */}
