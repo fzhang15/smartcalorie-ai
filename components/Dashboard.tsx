@@ -620,77 +620,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         </button>
       </div>
 
-      {/* Water Logs Section - Only show when water tracking is enabled */}
-      {profile.waterTrackingEnabled && displayedWaterLogs.length > 0 && (
-        <div className="px-6 pt-6">
-          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
-              <Droplets size={18} className="text-blue-500"/> 
-              Water
-          </h3>
-          <div className="space-y-2">
-            {displayedWaterLogs.slice().reverse().map((log) => (
-              <div key={log.id} className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                    <Droplets size={16}/>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{formatWaterAmount(log.amountMl, waterUnit)}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(log.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => onDeleteWaterLog(log.id)}
-                  className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
-                  title="Delete water log"
-                >
-                  <Trash2 size={14}/>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Exercise Logs Section */}
-      {displayedExerciseLogs.length > 0 && (
-        <div className="px-6 pt-6">
-          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
-              <Activity size={18} className="text-orange-500"/> 
-              Exercise
-          </h3>
-          <div className="space-y-2">
-            {displayedExerciseLogs.map((log) => (
-              <div key={log.id} className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex justify-between items-center group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                    <Activity size={16}/>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{EXERCISE_LABELS[log.type]}</p>
-                    <p className="text-xs text-gray-500">{log.durationMinutes} minutes</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-orange-600">-{log.caloriesBurned}</span>
-                  <button 
-                    onClick={() => onDeleteExerciseLog(log.id)}
-                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
-                    title="Delete exercise"
-                  >
-                    <Trash2 size={14}/>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Meal Logs Section */}
-      <div className="px-6 py-6">
+      <div className="px-6 pt-6 pb-2">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
                 <History size={18} className="text-brand-500"/> 
@@ -778,6 +709,75 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Exercise Logs Section */}
+      {displayedExerciseLogs.length > 0 && (
+        <div className="px-6 pt-6">
+          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
+              <Activity size={18} className="text-orange-500"/> 
+              Exercise
+          </h3>
+          <div className="space-y-2">
+            {displayedExerciseLogs.map((log) => (
+              <div key={log.id} className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex justify-between items-center group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                    <Activity size={16}/>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{EXERCISE_LABELS[log.type]}</p>
+                    <p className="text-xs text-gray-500">{log.durationMinutes} minutes</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-orange-600">-{log.caloriesBurned}</span>
+                  <button 
+                    onClick={() => onDeleteExerciseLog(log.id)}
+                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
+                    title="Delete exercise"
+                  >
+                    <Trash2 size={14}/>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Water Logs Section - Only show when water tracking is enabled */}
+      {profile.waterTrackingEnabled && displayedWaterLogs.length > 0 && (
+        <div className="px-6 pt-6 pb-6">
+          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
+              <Droplets size={18} className="text-blue-500"/> 
+              Water
+          </h3>
+          <div className="space-y-2">
+            {displayedWaterLogs.slice().reverse().map((log) => (
+              <div key={log.id} className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <Droplets size={16}/>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{formatWaterAmount(log.amountMl, waterUnit)}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(log.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => onDeleteWaterLog(log.id)}
+                  className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
+                  title="Delete water log"
+                >
+                  <Trash2 size={14}/>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Impact History Modal */}
       {showImpactHistory && (
