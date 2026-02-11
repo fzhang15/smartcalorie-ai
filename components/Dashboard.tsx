@@ -4,6 +4,7 @@ import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs, formatWaterAmount } from
 import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3, PenLine, Droplets } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ImpactHistoryModal from './ImpactHistoryModal';
+import MealLogDetail from './MealLogDetail';
 
 interface DashboardProps {
   profile: UserProfile;
@@ -55,6 +56,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   
   // State for image lightbox
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
+  // State for meal log detail popup
+  const [selectedMealLog, setSelectedMealLog] = useState<MealLog | null>(null);
 
   // Close calendar when clicking outside
   useEffect(() => {
@@ -657,18 +661,16 @@ const Dashboard: React.FC<DashboardProps> = ({
         ) : (
           <div className="space-y-4">
             {displayedMealLogs.slice().reverse().map((log) => (
-              <div key={log.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 relative group">
+              <div 
+                key={log.id} 
+                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 relative group cursor-pointer active:scale-[0.98] transition-all"
+                onClick={() => setSelectedMealLog(log)}
+              >
                 {log.imageUrl ? (
                     <img 
                       src={log.imageUrl} 
-                      className="w-16 h-16 rounded-lg object-cover bg-gray-100 cursor-pointer active:opacity-70 active:scale-95 transition-all" 
-                      style={{ touchAction: 'manipulation' }}
+                      className="w-16 h-16 rounded-lg object-cover bg-gray-100" 
                       alt="meal"
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        setSelectedImage(log.imageUrl);
-                      }}
-                      onClick={() => setSelectedImage(log.imageUrl)}
                     />
                 ) : log.description ? (
                     <div className="w-16 h-16 rounded-lg bg-brand-50 flex items-center justify-center text-brand-400" title={log.description}>
@@ -687,16 +689,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                             {log.items.map(i => i.name).join(', ')}
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-brand-600">{log.totalCalories}</span>
-                      <button 
-                        onClick={() => onDeleteLog(log.id)}
-                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
-                        title="Delete meal"
-                      >
-                        <Trash2 size={16}/>
-                      </button>
-                    </div>
+                    <span className="font-bold text-brand-600">{log.totalCalories}</span>
                   </div>
                    <div className="mt-2 flex gap-2 text-[10px] text-gray-400 font-mono">
                        <span className="bg-gray-50 px-1.5 py-0.5 rounded text-green-600">P: {log.items.reduce((a,b) => a+b.protein, 0)}g</span>
@@ -787,6 +780,16 @@ const Dashboard: React.FC<DashboardProps> = ({
           exerciseLogs={exerciseLogs}
           impactHistory={impactHistory}
           onClose={() => setShowImpactHistory(false)}
+        />
+      )}
+
+      {/* Meal Log Detail Modal */}
+      {selectedMealLog && (
+        <MealLogDetail
+          log={selectedMealLog}
+          onClose={() => setSelectedMealLog(null)}
+          onDelete={onDeleteLog}
+          onImageClick={(url) => { setSelectedMealLog(null); setSelectedImage(url); }}
         />
       )}
 

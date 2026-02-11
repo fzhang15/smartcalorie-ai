@@ -540,8 +540,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                 )}
               </div>
 
-              <h3 className="font-semibold text-gray-700">Identified Items:</h3>
-              <p className="text-xs text-gray-500 -mt-2 mb-2">Tap values to edit if AI estimate is incorrect</p>
               <div className="space-y-3">
                 {analyzedItems.map((item, idx) => {
                   const adjustedCalories = Math.round(item.calories * portionRatio);
