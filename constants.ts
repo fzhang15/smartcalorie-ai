@@ -23,6 +23,8 @@ export const EXERCISE_CALORIES_PER_MIN: Record<ExerciseType, number> = {
   cycling: 7,      // ~420 cal/hr
   swimming: 9,     // ~540 cal/hr
   strength: 5,     // ~300 cal/hr
+  aerobics: 8,     // ~480 cal/hr
+  plank: 4,        // ~240 cal/hr
 };
 
 export const EXERCISE_LABELS: Record<ExerciseType, string> = {
@@ -32,4 +34,6 @@ export const EXERCISE_LABELS: Record<ExerciseType, string> = {
   cycling: 'Cycling',
   swimming: 'Swimming',
   strength: 'Strength Training',
+  aerobics: 'Aerobics',
+  plank: 'Plank',
 };

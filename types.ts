@@ -59,7 +59,7 @@ export interface DailyStats {
   netWeightChange: number; // estimated kg change
 }
 
-export type ExerciseType = 'walking' | 'running' | 'elliptical' | 'cycling' | 'swimming' | 'strength';
+export type ExerciseType = 'walking' | 'running' | 'elliptical' | 'cycling' | 'swimming' | 'strength' | 'aerobics' | 'plank';
 
 export interface ExerciseLog {
   id: string;
