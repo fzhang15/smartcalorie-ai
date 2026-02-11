@@ -109,7 +109,7 @@ export const analyzeFoodImage = async (base64Image: string): Promise<FoodItem[]>
             },
           },
           {
-            text: "Analyze this image of food. Identify the distinct food items present. For each item, estimate the calories, protein (g), carbs (g), and fat (g). Be realistic with portion sizes based on visual cues.",
+            text: "Analyze this image. If the image does not contain any food or drinks, return an empty array []. Otherwise, identify the distinct food items present. For each item, estimate the calories, protein (g), carbs (g), and fat (g). Be realistic with portion sizes based on visual cues.",
           },
         ],
       },

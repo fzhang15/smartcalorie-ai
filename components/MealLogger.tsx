@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users, PenLine } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users, PenLine, AlertTriangle } from 'lucide-react';
 import { analyzeFoodImage, analyzeFoodDescription } from '../services/geminiService';
 import { FoodItem, MealLog } from '../types';
 
@@ -66,6 +66,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedItems, setAnalyzedItems] = useState<FoodItem[]>([]);
+  const [noFoodDetected, setNoFoodDetected] = useState(false);
   const [mealType, setMealType] = useState<MealLog['mealType']>(getDefaultMealType());
   const [analyzingTipIndex, setAnalyzingTipIndex] = useState(0);
   
@@ -185,9 +186,14 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const handleAnalyze = async () => {
     if (!image) return;
     setIsAnalyzing(true);
+    setNoFoodDetected(false);
     try {
       const items = await analyzeFoodImage(image);
-      setAnalyzedItems(items);
+      if (items.length === 0) {
+        setNoFoodDetected(true);
+      } else {
+        setAnalyzedItems(items);
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to analyze image. Please try again.";
       alert(msg);
@@ -199,9 +205,14 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const handleAnalyzeText = async () => {
     if (!textDescription.trim()) return;
     setIsAnalyzing(true);
+    setNoFoodDetected(false);
     try {
       const items = await analyzeFoodDescription(textDescription.trim());
-      setAnalyzedItems(items);
+      if (items.length === 0) {
+        setNoFoodDetected(true);
+      } else {
+        setAnalyzedItems(items);
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to analyze description. Please try again.";
       alert(msg);
@@ -443,8 +454,37 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
             </div>
           )}
 
+          {/* No Food Detected State */}
+          {noFoodDetected && !isAnalyzing && (
+            <div className="text-center space-y-4 py-2">
+              <div className="flex flex-col items-center gap-2">
+                <div className="p-3 bg-amber-50 rounded-full">
+                  <AlertTriangle size={24} className="text-amber-500" />
+                </div>
+                <p className="font-semibold text-gray-800">No food items detected</p>
+                <p className="text-sm text-gray-500">
+                  The image doesn't appear to contain food. Try a different photo or describe your meal instead.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => { setImage(null); setNoFoodDetected(false); }}
+                  className="w-full bg-brand-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-brand-700"
+                >
+                  <Camera size={20} /> Try Different Photo
+                </button>
+                <button
+                  onClick={() => { setImage(null); setNoFoodDetected(false); setInputMode('text'); }}
+                  className="w-full border border-gray-200 text-gray-700 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50"
+                >
+                  <PenLine size={20} /> Describe Your Meal
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Analysis State */}
-          {image && analyzedItems.length === 0 && (
+          {image && analyzedItems.length === 0 && !noFoodDetected && (
             <div className="text-center space-y-3">
               <button
                 onClick={handleAnalyze}
