@@ -502,13 +502,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                     )}
                 </div>
                 <div className="text-right">
-                    <p className="text-gray-400 text-xs mb-1">Effective BMR</p>
+                    <p className="text-gray-400 text-xs mb-1">Estimated BMR</p>
                     <p className="font-semibold">{effectiveBmr} kcal</p>
-                    {profile.calibrationFactor && profile.calibrationFactor !== 1.0 && (
-                      <p className="text-[10px] text-gray-500">
-                        ({(profile.calibrationFactor * 100).toFixed(0)}% of {profile.bmr})
-                      </p>
-                    )}
                 </div>
             </div>
             
