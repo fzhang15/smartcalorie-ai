@@ -150,6 +150,12 @@ const App: React.FC = () => {
           needsSave = true;
         }
         
+        // Migration: Add calibrationBaseWeight if missing
+        if (parsedProfile.calibrationBaseWeight === undefined) {
+          parsedProfile.calibrationBaseWeight = parsedProfile.weight;
+          needsSave = true;
+        }
+        
         // Migration: Add water tracking fields if missing
         if (parsedProfile.waterTrackingEnabled === undefined) {
           parsedProfile.waterTrackingEnabled = false;
@@ -407,11 +413,46 @@ const App: React.FC = () => {
   const handleUpdateWeight = (newWeight: number) => {
     if (!profile) return;
     
-    const previousWeight = profile.weight;
-    const actualChange = newWeight - previousWeight;
+    // Use calibrationBaseWeight as the baseline for actual change calculation
+    const baseWeight = profile.calibrationBaseWeight ?? profile.weight;
+    const actualChange = newWeight - baseWeight;
     
-    // Calculate predicted weight change since last update
+    // Calculate duration-based day gap for calibration confidence
     const lastUpdate = profile.lastWeightUpdate || Date.now();
+    const gapHours = (Date.now() - lastUpdate) / (1000 * 60 * 60);
+    const dayGap = Math.floor(gapHours / 24);
+    
+    // Recalculate BMR/TDEE with new weight (always done regardless of dayGap)
+    let newBmr = (10 * newWeight) + (6.25 * profile.height) - (5 * profile.age);
+    if (profile.gender === 'male') {
+      newBmr += 5;
+    } else {
+      newBmr -= 161;
+    }
+    const newTdee = newBmr * ACTIVITY_MULTIPLIERS[profile.activityLevel];
+    
+    // dayGap === 0: Too short for reliable calibration (< 24 hours)
+    // Save weight for display + BMR recalc, but don't calibrate or move baseline
+    if (dayGap === 0) {
+      console.log('Weight Update (no calibration, dayGap=0):', {
+        baseWeight,
+        newWeight,
+        gapHours: gapHours.toFixed(1),
+        dayGap,
+        calibrationFactor: profile.calibrationFactor,
+      });
+      
+      setProfile({
+        ...profile,
+        weight: newWeight,
+        bmr: Math.round(newBmr),
+        tdee: Math.round(newTdee),
+        // Do NOT update lastWeightUpdate or calibrationBaseWeight — gap keeps accumulating
+      });
+      return;
+    }
+    
+    // dayGap >= 1: Proceed with calibration
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -485,28 +526,31 @@ const App: React.FC = () => {
       current.setDate(current.getDate() + 1);
     }
     
-    // Calculate calibration error
+    // Calculate calibration error (using calibrationBaseWeight, not display weight)
     const predictionError = predictedChange - actualChange; // Positive = overpredicted weight gain
     
+    // Duration-aware smoothing ratio:
+    // dayGap=1 → newRatio=0.1 (very conservative, 1 day is still noisy)
+    // dayGap=2 → newRatio=0.2
+    // dayGap=3 → newRatio=0.3
+    // dayGap=4 → newRatio=0.4
+    // dayGap≥5 → newRatio=0.5 (capped, max trust in new signal)
+    const newRatio = Math.min(dayGap * 0.1, 0.5);
+    const oldRatio = 1 - newRatio;
+    
     // Update calibration factor using BMR-based correction
-    // If actual weight < predicted → real BMR is higher → factor should increase
-    // If actual weight > predicted → real BMR is lower → factor should decrease
     let newCalibrationFactor = profile.calibrationFactor || 1.0;
     if (totalBmrBurned > 0) {
-      // How much the BMR needs to be corrected (as a ratio)
-      // predictionError > 0 means we overpredicted weight gain → BMR is too low → increase factor
       const bmrCorrectionRatio = 1 + (predictedChange - actualChange) * CALORIES_PER_KG_FAT / totalBmrBurned;
       const thisMeasurementFactor = newCalibrationFactor * bmrCorrectionRatio;
       
       // Only calibrate when the implied BMR change is significant (>5%)
-      // Small errors may just be measurement noise (water weight, scale variance, etc.)
       if (Math.abs(bmrCorrectionRatio - 1) > 0.05) {
         // Clamp to reasonable range (0.5 to 1.5)
         const clampedFactor = Math.max(0.5, Math.min(1.5, thisMeasurementFactor));
-        // Exponential smoothing: 70% old, 30% new (higher weight on history to reduce noise)
-        newCalibrationFactor = 0.7 * newCalibrationFactor + 0.3 * clampedFactor;
+        // Duration-aware exponential smoothing
+        newCalibrationFactor = oldRatio * newCalibrationFactor + newRatio * clampedFactor;
       }
-      // If correction <= 5%, keep current calibration factor (prediction was accurate enough)
     }
     
     // Correct historical impact records
@@ -517,7 +561,6 @@ const App: React.FC = () => {
         const updated = prev.map(record => {
           const recordInPeriod = recordsInPeriod.find(r => r.date === record.date);
           if (recordInPeriod) {
-            // Subtract the correction (if we overpredicted, reduce the impact)
             return {
               ...record,
               impactKg: record.impactKg - correctionPerDay,
@@ -528,15 +571,6 @@ const App: React.FC = () => {
         return updated;
       });
     }
-    
-    // Recalculate BMR/TDEE
-    let newBmr = (10 * newWeight) + (6.25 * profile.height) - (5 * profile.age);
-    if (profile.gender === 'male') {
-      newBmr += 5;
-    } else {
-      newBmr -= 161;
-    }
-    const newTdee = newBmr * ACTIVITY_MULTIPLIERS[profile.activityLevel];
 
     setProfile({
       ...profile,
@@ -545,16 +579,19 @@ const App: React.FC = () => {
       tdee: Math.round(newTdee),
       lastWeightUpdate: Date.now(),
       calibrationFactor: newCalibrationFactor,
+      calibrationBaseWeight: newWeight, // Reset baseline on successful calibration
     });
     
     // Log calibration info for debugging
     console.log('Weight Calibration:', {
-      previousWeight,
+      baseWeight,
       newWeight,
       actualChange,
       predictedChange,
       predictionError,
       totalBmrBurned,
+      dayGap,
+      smoothingRatio: `${oldRatio.toFixed(1)}/${newRatio.toFixed(1)}`,
       oldCalibrationFactor: profile.calibrationFactor,
       newCalibrationFactor,
       daysAffected: recordsInPeriod.length,

@@ -43,7 +43,8 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
   - Compares predicted vs actual weight changes when you update
   - Adjusts "Effective BMR" to match your real metabolism
   - Historical impact records corrected to reflect actual changes
-  - Exponential smoothing (70% old, 30% new) for stable learning
+  - **Duration-aware smoothing** — longer measurement gaps = more trust in new data
+  - Same-day weigh-ins (< 24h) skip calibration to avoid noise
   - See [BMR Calibration Math](#-bmr-calibration--compensation-math) below for details
 
 ### 📈 Impact History & Trends
@@ -154,6 +155,7 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Weight Unit (kg or lbs)
 - BMR (Basal Metabolic Rate)
 - Calibration Factor (learned metabolism adjustment)
+- Calibration Base Weight (weight at last calibration point, only updated when dayGap ≥ 1)
 - Last weight update timestamp for prediction
 - Age last updated year (for auto-increment)
 - Daily exercise goal
@@ -264,17 +266,39 @@ Where `totalBmrBurned` is the sum of effective BMR burned across all logged days
 thisMeasurementFactor = oldFactor × bmrCorrectionRatio
 ```
 
-**Three safety guards prevent wild swings:**
+**Four safety guards prevent wild swings:**
 
-1. **Noise filter (5% threshold):** If `|bmrCorrectionRatio − 1| ≤ 0.05`, skip calibration entirely. Small errors are likely measurement noise (water weight, scale variance), not metabolism changes.
+1. **Same-day gate (dayGap = 0):** If the gap since last weight update is < 24 hours, skip calibration entirely. Short-term weight fluctuations (water, food in stomach) would poison the calibration. The weight is saved for display and BMR recalculation, but `lastWeightUpdate` and `calibrationBaseWeight` are NOT moved — the gap keeps accumulating until it crosses 24h.
 
-2. **Clamping [0.5, 1.5]:** The factor is clamped so effective BMR never deviates more than ±50% from the Mifflin-St Jeor baseline.
-
-3. **Exponential smoothing (70/30):** The new factor blends with history to dampen outliers:
    ```
-   newFactor = 0.7 × oldFactor + 0.3 × clampedFactor
+   gapHours = (now − lastWeightUpdate) / 3600000
+   dayGap = floor(gapHours / 24)
+   if dayGap === 0 → save weight, skip calibration, keep baseline
    ```
-   The 70% weight on the old value means a single bad measurement can only shift the factor by 30% of the implied correction.
+
+2. **Noise filter (5% threshold):** If `|bmrCorrectionRatio − 1| ≤ 0.05`, skip calibration. Small errors are likely measurement noise, not metabolism changes.
+
+3. **Clamping [0.5, 1.5]:** The factor is clamped so effective BMR never deviates more than ±50% from the Mifflin-St Jeor baseline.
+
+4. **Duration-aware exponential smoothing:** Longer measurement periods produce more reliable signals. The smoothing ratio scales with `dayGap`:
+
+   | dayGap | oldRatio | newRatio | Reasoning |
+   |--------|----------|----------|-----------|
+   | 0 | — | — | Skip calibration entirely |
+   | 1 | 0.9 | 0.1 | 1 day is still noisy |
+   | 2 | 0.8 | 0.2 | Moderate confidence |
+   | 3 | 0.7 | 0.3 | Good signal |
+   | 4 | 0.6 | 0.4 | Strong signal |
+   | ≥5 | 0.5 | 0.5 | Max trust (capped) |
+
+   Formula:
+   ```
+   newRatio = min(dayGap × 0.1, 0.5)
+   oldRatio = 1 − newRatio
+   newFactor = oldRatio × oldFactor + newRatio × clampedFactor
+   ```
+
+   **`calibrationBaseWeight`:** The `actualChange` for calibration is always computed against `calibrationBaseWeight` (not the display weight). This field is only updated when `dayGap ≥ 1`, ensuring same-day weigh-ins don't shift the calibration baseline.
 
 ### Step 6: Historical Impact Correction
 
@@ -323,9 +347,11 @@ This ensures the impact history chart reflects what actually happened (based on 
 >
 > Passes 5% threshold (17.2% > 5%) ✓. Within [0.5, 1.5] range ✓.
 >
+> Duration-aware smoothing: `dayGap = 7` → `newRatio = min(7 × 0.1, 0.5) = 0.5`, `oldRatio = 0.5`
+>
 > ```
-> newFactor = 0.7 × 1.0 + 0.3 × 1.172 = 0.700 + 0.352 = 1.052
-> New Effective BMR = 1749 × 1.052 = 1840 kcal
+> newFactor = 0.5 × 1.0 + 0.5 × 1.172 = 0.500 + 0.586 = 1.086
+> New Effective BMR = 1749 × 1.086 = 1899 kcal
 > ```
 >
 > **Historical correction:**

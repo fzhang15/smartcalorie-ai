@@ -57,9 +57,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
       dailyWaterGoalMl: waterGoalMl,
     };
 
-    // Update lastWeightUpdate if weight changed
+    // Update lastWeightUpdate and calibrationBaseWeight if weight changed
     if (Math.abs(weightInKg - profile.weight) > 0.01) {
       updates.lastWeightUpdate = Date.now();
+      updates.calibrationBaseWeight = weightInKg;
     }
 
     onSave(updates);

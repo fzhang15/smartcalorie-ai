@@ -27,6 +27,7 @@ export interface UserProfile {
   ageLastUpdatedYear: number; // Year when age was last updated (for auto-increment)
   dailyExerciseGoal: number; // Daily exercise calorie burn goal (default 300)
   calibrationFactor: number; // Adjustment factor for BMR accuracy (default 1.0, learned from weight updates)
+  calibrationBaseWeight: number; // Weight at last calibration point (only updated when dayGap >= 1)
   waterTrackingEnabled: boolean; // Whether water tracking is enabled (default false)
   dailyWaterGoalMl: number; // Daily water intake goal in ml (default 2500)
   waterUnit: WaterUnit; // User's preferred water unit (default 'ml')
