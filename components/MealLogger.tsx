@@ -592,14 +592,14 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                   
                   return (
                     <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2">
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-2">
                         <input
                           type="text"
                           value={item.name}
                           onChange={(e) => updateItem('name', e.target.value)}
-                          className="font-medium text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-full max-w-[180px]"
+                          className="font-medium text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none flex-1 min-w-0"
                         />
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <input
                             type="number"
                             value={item.calories}
