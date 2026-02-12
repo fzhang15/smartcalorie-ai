@@ -294,15 +294,16 @@ const ImpactHistoryModal: React.FC<ImpactHistoryModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 px-0 sm:px-4 modal-backdrop animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200"
+        className="bg-white rounded-t-[1.25rem] sm:rounded-[1.25rem] w-full max-w-md shadow-elevated animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="drag-handle sm:hidden" />
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 pb-4 pt-2 sm:pt-4 sm:px-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <BarChart3 className="text-brand-500" size={20} />
             <h2 className="text-lg font-bold text-gray-800">Impact History</h2>
@@ -321,9 +322,9 @@ const ImpactHistoryModal: React.FC<ImpactHistoryModalProps> = ({
             <button
               key={view}
               onClick={() => setTrendView(view)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
                 trendView === view
-                  ? 'bg-brand-500 text-white shadow-md'
+                  ? 'bg-accent-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >

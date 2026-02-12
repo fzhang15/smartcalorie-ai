@@ -6,691 +6,242 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ImpactHistoryModal from './ImpactHistoryModal';
 import MealLogDetail from './MealLogDetail';
 
+const CalorieRing: React.FC<{eaten:number;target:number;netCalories:number;isToday:boolean}> = ({eaten,target,netCalories,isToday}) => {
+  const size=148, sw=10, r=(size-sw)/2, c=r*2*Math.PI;
+  const prog=Math.min(eaten/target,1.5), off=c-prog*c, over=eaten>target;
+  return (
+    <div className="relative flex items-center justify-center flex-shrink-0" style={{width:size,height:size}}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={over?'#ef4444':'#22c55e'} strokeWidth={sw} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" className="progress-ring-circle"/>
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-extrabold text-white tracking-tight">{isToday?(netCalories>0?'+':'')+netCalories:eaten}</span>
+        <span className="text-[11px] text-gray-400 font-medium mt-0.5">{isToday?'net kcal':'kcal eaten'}</span>
+      </div>
+    </div>
+  );
+};
+
+const MiniMetric: React.FC<{icon:React.ReactNode;label:string;value:string;progress:number;color:string}> = ({icon,label,value,progress,color}) => (
+  <div className="flex flex-col items-center gap-1">
+    <div className="w-10 h-10 relative flex items-center justify-center">
+      <svg width="40" height="40" className="absolute inset-0 transform -rotate-90">
+        <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+        <circle cx="20" cy="20" r="16" fill="none" stroke={color} strokeWidth="3" strokeDasharray={`${16*2*Math.PI}`} strokeDashoffset={`${16*2*Math.PI*(1-Math.min(progress,1))}`} strokeLinecap="round" className="progress-ring-circle"/>
+      </svg>
+      <div className="relative z-10">{icon}</div>
+    </div>
+    <span className="text-[10px] text-gray-500 font-medium leading-none">{label}</span>
+    <span className="text-xs text-white font-semibold leading-none">{value}</span>
+  </div>
+);
+
 interface DashboardProps {
-  profile: UserProfile;
-  logs: MealLog[];
-  exerciseLogs: ExerciseLog[];
-  waterLogs: WaterLog[];
-  impactHistory: DailyImpactRecord[];
-  onOpenLogger: () => void;
-  onOpenExerciseLogger: () => void;
-  onOpenWaterTracker: () => void;
-  onUpdateWeight: (suggestedWeight: number) => void;
-  onEditProfile: () => void;
-  onReset: () => void;
-  onDeleteLog: (logId: string) => void;
-  onDeleteExerciseLog: (logId: string) => void;
-  onDeleteWaterLog: (logId: string) => void;
+  profile: UserProfile; logs: MealLog[]; exerciseLogs: ExerciseLog[]; waterLogs: WaterLog[]; impactHistory: DailyImpactRecord[];
+  onOpenLogger: () => void; onOpenExerciseLogger: () => void; onOpenWaterTracker: () => void;
+  onUpdateWeight: (suggestedWeight: number) => void; onEditProfile: () => void; onReset: () => void;
+  onDeleteLog: (logId: string) => void; onDeleteExerciseLog: (logId: string) => void; onDeleteWaterLog: (logId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
-  profile, 
-  logs, 
-  exerciseLogs,
-  waterLogs,
-  impactHistory,
-  onOpenLogger, 
-  onOpenExerciseLogger,
-  onOpenWaterTracker,
-  onUpdateWeight,
-  onEditProfile,
-  onReset, 
-  onDeleteLog,
-  onDeleteExerciseLog,
-  onDeleteWaterLog 
-}) => {
-  // State for the currently viewed date (defaults to today)
+const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLogs,impactHistory,onOpenLogger,onOpenExerciseLogger,onOpenWaterTracker,onUpdateWeight,onEditProfile,onReset,onDeleteLog,onDeleteExerciseLog,onDeleteWaterLog}) => {
   const [viewDate, setViewDate] = useState(new Date());
-  
-  // State for real-time clock update
   const [currentTime, setCurrentTime] = useState(new Date());
-  
-  // State for impact history modal
   const [showImpactHistory, setShowImpactHistory] = useState(false);
-  
-  // State for calendar picker
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
   const calendarToggleRef = useRef<HTMLButtonElement>(null);
-  
-  // State for image lightbox
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
-  // State for meal log detail popup
   const [selectedMealLog, setSelectedMealLog] = useState<MealLog | null>(null);
 
-  // Close calendar when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      // Ignore clicks on the toggle button (let toggleCalendar handle it)
-      if (calendarToggleRef.current && calendarToggleRef.current.contains(target)) {
-        return;
-      }
-      if (calendarRef.current && !calendarRef.current.contains(target)) {
-        setShowCalendar(false);
-      }
+    const h = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (calendarToggleRef.current?.contains(t)) return;
+      if (calendarRef.current && !calendarRef.current.contains(t)) setShowCalendar(false);
     };
-    
-    if (showCalendar) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (showCalendar) document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, [showCalendar]);
 
-  // Update current time every minute for real-time calorie burn calculation
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
-    
-    return () => clearInterval(timer);
-  }, []);
+  useEffect(() => { const t = setInterval(() => setCurrentTime(new Date()), 60000); return () => clearInterval(t); }, []);
 
-
-  // Helper function to check if a date is today
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
-  };
-
-  // Get effective BMR (adjusted by calibration factor)
+  const isToday = (d: Date) => { const t = new Date(); return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear(); };
+  const isSameDay = (a: Date, b: Date) => a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear();
   const effectiveBmr = Math.round(profile.bmr * (profile.calibrationFactor || 1.0));
+  const getTimeBasedBMR = () => { const h=currentTime.getHours(),m=currentTime.getMinutes(); return Math.round(effectiveBmr*((h+m/60)/24)); };
+  const navigateDate = (n: number) => { const d=new Date(viewDate); d.setDate(viewDate.getDate()+n); setViewDate(d); };
+  const selectDate = (d: Date) => { setViewDate(d); setShowCalendar(false); };
+  const toggleCalendar = () => { if(showCalendar){setShowCalendar(false)}else{setCalendarMonth(new Date(viewDate));setShowCalendar(true)} };
+  const isFutureDate = (d: Date) => { const t=new Date();t.setHours(23,59,59,999);return d>t; };
 
-  // Calculate time-based BMR burn (proportional to time of day)
-  const getTimeBasedBMR = () => {
-    const hours = currentTime.getHours();
-    const minutes = currentTime.getMinutes();
-    const dayProgress = (hours + minutes / 60) / 24;
-    return Math.round(effectiveBmr * dayProgress);
-  };
-
-  const navigateDate = (days: number) => {
-    const newDate = new Date(viewDate);
-    newDate.setDate(viewDate.getDate() + days);
-    setViewDate(newDate);
-  };
-
-  const resetToToday = () => setViewDate(new Date());
-
-  const selectDate = (date: Date) => {
-    setViewDate(date);
-    setShowCalendar(false);
-  };
-
-  const toggleCalendar = () => {
-    if (showCalendar) {
-      setShowCalendar(false);
-    } else {
-      setCalendarMonth(new Date(viewDate));
-      setShowCalendar(true);
-    }
-  };
-
-  // Calendar helper functions
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const isSameDay = (d1: Date, d2: Date) => {
-    return d1.getDate() === d2.getDate() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getFullYear() === d2.getFullYear();
-  };
-
-  const isFutureDate = (date: Date) => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    return date > today;
-  };
-
-  // Find the earliest date with data (either from logs or profile creation)
   const earliestDataDate = useMemo(() => {
-    const dates: number[] = [];
-    
-    // Add earliest meal log
-    if (logs.length > 0) {
-      const earliestMeal = Math.min(...logs.map(log => log.timestamp));
-      dates.push(earliestMeal);
-    }
-    
-    // Add earliest exercise log
-    if (exerciseLogs.length > 0) {
-      const earliestExercise = Math.min(...exerciseLogs.map(log => log.timestamp));
-      dates.push(earliestExercise);
-    }
-    
-    // Add profile creation date as fallback
-    if (profile.createdAt) {
-      dates.push(profile.createdAt);
-    }
-    
-    if (dates.length === 0) return null;
-    
-    const earliest = new Date(Math.min(...dates));
-    earliest.setHours(0, 0, 0, 0);
-    return earliest;
+    const d: number[] = [];
+    if(logs.length>0) d.push(Math.min(...logs.map(l=>l.timestamp)));
+    if(exerciseLogs.length>0) d.push(Math.min(...exerciseLogs.map(l=>l.timestamp)));
+    if(profile.createdAt) d.push(profile.createdAt);
+    if(!d.length) return null;
+    const e=new Date(Math.min(...d));e.setHours(0,0,0,0);return e;
   }, [logs, exerciseLogs, profile.createdAt]);
 
-  const isBeforeEarliestData = (date: Date) => {
-    if (!earliestDataDate) return false;
-    const checkDate = new Date(date);
-    checkDate.setHours(0, 0, 0, 0);
-    return checkDate < earliestDataDate;
-  };
-
-  const isAtEarliestDataDate = () => {
-    if (!earliestDataDate) return false;
-    return viewDate.getDate() === earliestDataDate.getDate() &&
-           viewDate.getMonth() === earliestDataDate.getMonth() &&
-           viewDate.getFullYear() === earliestDataDate.getFullYear();
-  };
-
-  const hasLogsOnDate = (date: Date) => {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-    
-    const hasMealLogs = logs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
-    const hasExerciseLogs = exerciseLogs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
-    
-    return hasMealLogs || hasExerciseLogs;
-  };
-
-  const navigateMonth = (direction: number) => {
-    const newMonth = new Date(calendarMonth);
-    newMonth.setMonth(calendarMonth.getMonth() + direction);
-    setCalendarMonth(newMonth);
-  };
+  const isBeforeEarliest = (d: Date) => { if(!earliestDataDate)return false;const c=new Date(d);c.setHours(0,0,0,0);return c<earliestDataDate; };
+  const isAtEarliest = () => earliestDataDate ? isSameDay(viewDate, earliestDataDate) : false;
+  const hasLogsOn = (d: Date) => { const s=new Date(d);s.setHours(0,0,0,0);const e=new Date(d);e.setHours(23,59,59,999); return logs.some(l=>l.timestamp>=s.getTime()&&l.timestamp<=e.getTime())||exerciseLogs.some(l=>l.timestamp>=s.getTime()&&l.timestamp<=e.getTime()); };
 
   const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(calendarMonth);
-    const firstDay = getFirstDayOfMonth(calendarMonth);
+    const dim = new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,0).getDate();
+    const fd = new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),1).getDay();
     const today = new Date();
-    const days = [];
-    const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-    // Empty cells before first day
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="w-11 h-12"></div>);
+    const days: React.ReactNode[] = [];
+    for(let i=0;i<fd;i++) days.push(<div key={`e${i}`} className="w-11 h-12"/>);
+    for(let day=1;day<=dim;day++){
+      const dt=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),day);
+      const sel=isSameDay(dt,viewDate),td=isSameDay(dt,today),dis=isFutureDate(dt)||isBeforeEarliest(dt),hl=hasLogsOn(dt);
+      days.push(<button key={day} onClick={()=>!dis&&selectDate(dt)} disabled={dis} className="w-11 h-12 flex flex-col items-center justify-center">
+        <span className={`w-10 h-10 rounded-full text-sm font-medium transition-all flex items-center justify-center ${sel?'bg-brand-500 text-white shadow-md':td?'bg-brand-100 text-brand-600 font-bold':dis?'text-gray-300 cursor-not-allowed':'text-gray-700 hover:bg-gray-100'}`}>{day}</span>
+        {hl&&!dis&&<span className="w-1 h-1 rounded-full bg-brand-500 -mt-0.5"/>}
+      </button>);
     }
-
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
-      const isSelected = isSameDay(date, viewDate);
-      const isTodayDate = isSameDay(date, today);
-      const isFuture = isFutureDate(date);
-      const isPast = isBeforeEarliestData(date);
-      const isDisabled = isFuture || isPast;
-      const hasLogs = hasLogsOnDate(date);
-
-      days.push(
-        <button
-          key={day}
-          onClick={() => !isDisabled && selectDate(date)}
-          disabled={isDisabled}
-          className="w-11 h-12 flex flex-col items-center justify-center"
-        >
-          <span className={`w-11 h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center
-            ${isSelected 
-              ? 'bg-brand-500 text-white' 
-              : isTodayDate 
-                ? 'bg-brand-100 text-brand-600 font-bold' 
-                : isDisabled 
-                  ? 'text-gray-300 cursor-not-allowed' 
-                  : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {day}
-          </span>
-          {hasLogs && !isDisabled && (
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 -mt-1"></span>
-          )}
-        </button>
-      );
-    }
-
     return (
-      <div 
-        ref={calendarRef}
-        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 p-6 z-50 animate-in fade-in zoom-in-95 duration-200 min-w-[340px]"
-      >
-        {/* Month/Year Header */}
+      <div ref={calendarRef} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-2xl shadow-elevated border border-gray-100 p-6 z-50 animate-in fade-in zoom-in-95 duration-200 min-w-[340px]">
         <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={() => navigateMonth(-1)}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <span className="font-semibold text-gray-800 text-base">
-            {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </span>
-          <button 
-            onClick={() => navigateMonth(1)}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
-          >
-            <ChevronRight size={20} />
-          </button>
+          <button onClick={()=>{const m=new Date(calendarMonth);m.setMonth(m.getMonth()-1);setCalendarMonth(m)}} className="p-2 rounded-xl hover:bg-gray-100 text-gray-600"><ChevronLeft size={20}/></button>
+          <span className="font-semibold text-gray-800">{calendarMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span>
+          <button onClick={()=>{const m=new Date(calendarMonth);m.setMonth(m.getMonth()+1);setCalendarMonth(m)}} className="p-2 rounded-xl hover:bg-gray-100 text-gray-600"><ChevronRight size={20}/></button>
         </div>
-
-        {/* Day labels */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {dayLabels.map(label => (
-            <div key={label} className="w-11 h-8 flex items-center justify-center text-xs font-medium text-gray-400">
-              {label}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {days}
-        </div>
-
-        {/* Quick actions */}
-        <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">
-          <button
-            onClick={() => selectDate(new Date())}
-            className="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
-          >
-            Go to Today
-          </button>
-        </div>
+        <div className="grid grid-cols-7 gap-1 mb-2">{['Su','Mo','Tu','We','Th','Fr','Sa'].map(l=><div key={l} className="w-11 h-8 flex items-center justify-center text-xs font-medium text-gray-400">{l}</div>)}</div>
+        <div className="grid grid-cols-7 gap-1">{days}</div>
+        <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center"><button onClick={()=>selectDate(new Date())} className="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-xl hover:bg-brand-100">Go to Today</button></div>
       </div>
     );
   };
 
-  // Filter meal logs based on the viewed date
-  const displayedMealLogs = logs.filter(log => {
-      const logDate = new Date(log.timestamp);
-      return logDate.getDate() === viewDate.getDate() &&
-             logDate.getMonth() === viewDate.getMonth() &&
-             logDate.getFullYear() === viewDate.getFullYear();
-  });
+  const dml = logs.filter(l=>isSameDay(new Date(l.timestamp),viewDate));
+  const del = exerciseLogs.filter(l=>isSameDay(new Date(l.timestamp),viewDate));
+  const dwl = waterLogs.filter(l=>isSameDay(new Date(l.timestamp),viewDate));
+  const wim = dwl.reduce((a,l)=>a+l.amountMl,0), wgm=profile.dailyWaterGoalMl||2500, wu=profile.waterUnit||'ml';
+  const ecb = del.reduce((a,l)=>a+l.caloriesBurned,0);
+  const bmrSF = isToday(viewDate)?getTimeBasedBMR():effectiveBmr;
+  const tcb = bmrSF+ecb, dt = effectiveBmr;
 
-  // Filter exercise logs based on the viewed date
-  const displayedExerciseLogs = exerciseLogs.filter(log => {
-      const logDate = new Date(log.timestamp);
-      return logDate.getDate() === viewDate.getDate() &&
-             logDate.getMonth() === viewDate.getMonth() &&
-             logDate.getFullYear() === viewDate.getFullYear();
-  });
+  const isRegDay = profile.createdAt ? isSameDay(new Date(profile.createdAt),viewDate) : false;
+  const vc = isRegDay&&profile.createdAt?(()=>{const c=new Date(profile.createdAt);return Math.round((effectiveBmr/24)*(c.getHours()+c.getMinutes()/60))})():0;
 
-  // Filter water logs based on the viewed date
-  const displayedWaterLogs = waterLogs.filter(log => {
-      const logDate = new Date(log.timestamp);
-      return logDate.getDate() === viewDate.getDate() &&
-             logDate.getMonth() === viewDate.getMonth() &&
-             logDate.getFullYear() === viewDate.getFullYear();
-  });
+  const aci = dml.reduce((a,l)=>a+l.totalCalories,0);
+  const tci = aci+vc;
+  const nc = tci-(isToday(viewDate)?tcb:profile.bmr+ecb);
+  const pwc = (tci-bmrSF-ecb)/CALORIES_PER_KG_FAT;
 
-  // Calculate water intake for the day
-  const waterIntakeMl = displayedWaterLogs.reduce((acc, log) => acc + log.amountMl, 0);
-  const waterGoalMl = profile.dailyWaterGoalMl || 2500;
-  const waterUnit = profile.waterUnit || 'ml';
+  const md = useMemo(()=>{let p=0,c=0,f=0;dml.forEach(l=>l.items.forEach(i=>{p+=i.protein;c+=i.carbs;f+=i.fat}));return [{name:'Protein',value:p,color:'#22c55e'},{name:'Carbs',value:c,color:'#eab308'},{name:'Fat',value:f,color:'#ef4444'}].filter(i=>i.value>0)},[dml]);
 
-  // Calculate exercise calories for the day
-  const exerciseCaloriesBurned = displayedExerciseLogs.reduce((acc, log) => acc + log.caloriesBurned, 0);
+  const pw = useMemo(()=>{
+    const lu=profile.lastWeightUpdate||Date.now();
+    const ci=logs.filter(l=>l.timestamp>lu).reduce((a,l)=>a+l.totalCalories,0);
+    const ce=exerciseLogs.filter(l=>l.timestamp>lu).reduce((a,l)=>a+l.caloriesBurned,0);
+    const h=Math.max(0,(Date.now()-lu)/(1000*60*60));
+    return profile.weight+(ci-Math.round((effectiveBmr/24)*h)-ce)/CALORIES_PER_KG_FAT;
+  },[logs,exerciseLogs,profile.weight,profile.lastWeightUpdate,effectiveBmr,currentTime]);
 
-  // Calculate total calories burned: BMR (time-based for today) + Exercise
-  const bmrBurnedSoFar = isToday(viewDate) ? getTimeBasedBMR() : effectiveBmr;
-  const totalCaloriesBurned = bmrBurnedSoFar + exerciseCaloriesBurned;
-
-  // Daily target is effective BMR + exercise (not TDEE since we track exercise separately)
-  const dailyTarget = effectiveBmr;
-
-  // Check if viewing registration day - add virtual calories for BMR burned before registration
-  const isRegistrationDay = (() => {
-    const createdAt = profile.createdAt;
-    if (!createdAt) return false;
-    const createdDate = new Date(createdAt);
-    return createdDate.getDate() === viewDate.getDate() &&
-           createdDate.getMonth() === viewDate.getMonth() &&
-           createdDate.getFullYear() === viewDate.getFullYear();
-  })();
-
-  const virtualCalories = isRegistrationDay && profile.createdAt
-    ? (() => {
-        // Calculate BMR burned from midnight to registration time
-        const createdAt = new Date(profile.createdAt);
-        const hoursBeforeRegistration = createdAt.getHours() + createdAt.getMinutes() / 60;
-        return Math.round((effectiveBmr / 24) * hoursBeforeRegistration);
-      })()
-    : 0;
-
-  const actualCaloriesIn = displayedMealLogs.reduce((acc, log) => acc + log.totalCalories, 0);
-  const totalCaloriesIn = actualCaloriesIn + virtualCalories;
-  const netCalories = totalCaloriesIn - (isToday(viewDate) ? totalCaloriesBurned : profile.bmr + exerciseCaloriesBurned);
-  // For today, use time-based BMR to match Predicted Weight calculation; for past days, use full BMR
-  const predictedWeightChange = (totalCaloriesIn - bmrBurnedSoFar - exerciseCaloriesBurned) / CALORIES_PER_KG_FAT; // kg
-
-  const progressPercentage = Math.min((totalCaloriesIn / dailyTarget) * 100, 100);
-  const burnProgress = isToday(viewDate) 
-    ? Math.min((bmrBurnedSoFar / effectiveBmr) * 100, 100)
-    : 100;
-  
-  const macroData = useMemo(() => {
-    let p = 0, c = 0, f = 0;
-    displayedMealLogs.forEach(log => {
-        log.items.forEach(item => {
-            p += item.protein;
-            c += item.carbs;
-            f += item.fat;
-        });
-    });
-    return [
-        { name: 'Protein', value: p, color: '#22c55e' }, // green-500
-        { name: 'Carbs', value: c, color: '#eab308' },   // yellow-500
-        { name: 'Fat', value: f, color: '#ef4444' },     // red-500
-    ].filter(i => i.value > 0);
-  }, [displayedMealLogs]);
-
-  // Calculate predicted weight based on cumulative net calories since last weight update
-  const predictedWeight = useMemo(() => {
-    const lastUpdate = profile.lastWeightUpdate || Date.now();
-    
-    // Only count meals logged AFTER the weight update
-    const caloriesIn = logs
-      .filter(log => log.timestamp > lastUpdate)
-      .reduce((acc, log) => acc + log.totalCalories, 0);
-    
-    // Only count exercise logged AFTER the weight update
-    const caloriesExercise = exerciseLogs
-      .filter(log => log.timestamp > lastUpdate)
-      .reduce((acc, log) => acc + log.caloriesBurned, 0);
-    
-    // Calculate BMR burned from lastUpdate to now
-    const hoursElapsed = Math.max(0, (Date.now() - lastUpdate) / (1000 * 60 * 60));
-    const bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
-    
-    // Net calories and weight change
-    const netCalories = caloriesIn - bmrBurned - caloriesExercise;
-    const weightChange = netCalories / CALORIES_PER_KG_FAT;
-    
-    return profile.weight + weightChange;
-  }, [logs, exerciseLogs, profile.weight, profile.lastWeightUpdate, effectiveBmr, currentTime]);
-
-  const formattedDate = viewDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const fd = viewDate.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 
   return (
-    <div className="pb-32"> {/* Increased bottom padding for iOS Home Indicator */}
-      {/* Top Bar - Added pt-4 for status bar spacing */}
-      <div className="bg-white p-6 pb-4 pt-8 rounded-b-3xl shadow-sm border-b border-gray-100">
-        <div className="flex justify-between items-start mb-6">
-          <button 
-            onClick={onEditProfile}
-            className="flex items-center gap-3 hover:bg-gray-50 p-2 -m-2 rounded-xl transition-colors"
-          >
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${profile.avatarColor || 'bg-brand-500'}`}>
-                {profile.name.charAt(0).toUpperCase()}
-             </div>
-             <div className="text-left">
-                <h1 className="text-xl font-bold text-gray-800">{profile.name}</h1>
-                <p className="text-xs text-gray-500">Tap to edit profile</p>
-             </div>
+    <div className="pb-32">
+      <div className="bg-white p-6 pb-4 pt-8 rounded-b-[2rem] shadow-card">
+        <div className="flex justify-between items-start mb-5">
+          <button onClick={onEditProfile} className="flex items-center gap-3 hover:bg-gray-50 p-2 -m-2 rounded-2xl transition-colors">
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg ${profile.avatarColor||'bg-brand-500'}`}>{profile.name.charAt(0).toUpperCase()}</div>
+            <div className="text-left">
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">{profile.name}</h1>
+              <p className="text-[11px] text-gray-400 font-medium">Tap to edit profile</p>
+            </div>
           </button>
-          <button onClick={onReset} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete Profile">
-              <Trash2 size={20} />
-          </button>
+          <button onClick={onReset} className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Delete Profile"><Trash2 size={18}/></button>
         </div>
 
-        {/* Date Navigator */}
-        <div className="flex items-center justify-between mb-4 bg-gray-50 p-1 rounded-xl relative">
-            <button 
-                onClick={() => navigateDate(-1)} 
-                disabled={isAtEarliestDataDate()}
-                className={`p-2 rounded-lg transition-all ${isAtEarliestDataDate() ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-white hover:text-brand-600'}`}
-            >
-                <ChevronLeft size={20} />
-            </button>
-            <button 
-              ref={calendarToggleRef}
-              onClick={toggleCalendar}
-              className="flex items-center gap-2 font-semibold text-gray-700 hover:bg-white px-3 py-1.5 rounded-lg transition-all"
-            >
-                <Calendar size={16} className="text-brand-500"/>
-                {isToday(viewDate) ? "Today" : formattedDate}
-            </button>
-            {showCalendar && renderCalendar()}
-            <div className="flex gap-1">
-                {!isToday(viewDate) && (
-                    <button onClick={resetToToday} className="px-3 py-1 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100">
-                        Today
-                    </button>
-                )}
-                <button 
-                    onClick={() => navigateDate(1)} 
-                    disabled={isToday(viewDate)}
-                    className={`p-2 rounded-lg transition-all ${isToday(viewDate) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-white hover:text-brand-600'}`}
-                >
-                    <ChevronRight size={20} />
-                </button>
-            </div>
+        <div className="flex items-center justify-between mb-5 bg-gray-50 p-1 rounded-2xl relative">
+          <button onClick={()=>navigateDate(-1)} disabled={isAtEarliest()} className={`p-2.5 rounded-xl transition-all ${isAtEarliest()?'text-gray-300 cursor-not-allowed':'text-gray-500 hover:bg-white hover:text-brand-600 hover:shadow-sm'}`}><ChevronLeft size={18}/></button>
+          <button ref={calendarToggleRef} onClick={toggleCalendar} className="flex items-center gap-2 font-semibold text-gray-700 hover:bg-white px-4 py-2 rounded-xl transition-all hover:shadow-sm">
+            <Calendar size={15} className="text-brand-500"/>{isToday(viewDate)?"Today":fd}
+          </button>
+          {showCalendar&&renderCalendar()}
+          <div className="flex gap-1">
+            {!isToday(viewDate)&&<button onClick={()=>setViewDate(new Date())} className="px-3 py-1.5 text-xs font-semibold text-brand-600 bg-brand-50 rounded-xl hover:bg-brand-100">Today</button>}
+            <button onClick={()=>navigateDate(1)} disabled={isToday(viewDate)} className={`p-2.5 rounded-xl transition-all ${isToday(viewDate)?'text-gray-300 cursor-not-allowed':'text-gray-500 hover:bg-white hover:text-brand-600 hover:shadow-sm'}`}><ChevronRight size={18}/></button>
+          </div>
         </div>
 
-        {/* Main Stats Card */}
-        <div className="bg-black text-white rounded-2xl p-6 shadow-xl relative overflow-hidden transition-all duration-300">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Flame size={120} />
-            </div>
+        <div className="bg-gray-900 text-white rounded-[1.25rem] p-5 shadow-elevated relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800"/>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/5 rounded-full -translate-y-1/2 translate-x-1/2"/>
           <div className="relative z-10">
-            <div className="flex justify-between items-end mb-4">
-                <div>
-                    <p className="text-gray-400 text-sm font-medium mb-1">
-                        {isToday(viewDate) ? "Net Calories" : "Calories Consumed"}
-                    </p>
-                    <div className="text-4xl font-bold tracking-tight">
-                        {isToday(viewDate) 
-                            ? (netCalories > 0 ? '+' : '') + netCalories
-                            : totalCaloriesIn
-                        }
-                    </div>
-                    {isToday(viewDate) && (
-                        <p className="text-gray-500 text-xs mt-1">
-                            {totalCaloriesIn} eaten - {totalCaloriesBurned} burned
-                        </p>
-                    )}
-                </div>
-                <div className="text-right">
-                    <p className="text-gray-400 text-xs mb-1">Estimated BMR</p>
-                    <p className="font-semibold">{effectiveBmr} kcal</p>
-                </div>
-            </div>
-            
-            {/* Calories Eaten Progress Bar */}
-            <div className="mb-3">
-              <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span className="flex items-center gap-1"><Utensils size={10}/> Eaten</span>
-                  <span>{Math.round(totalCaloriesIn)} / {dailyTarget}</span>
-              </div>
-              <div className="w-full bg-gray-800 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-1000 ${
-                      totalCaloriesIn > dailyTarget ? 'bg-red-500' : 'bg-brand-500'
-                  }`} 
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
+            <div className="flex items-center gap-4">
+              <CalorieRing eaten={tci} target={dt} netCalories={nc} isToday={isToday(viewDate)}/>
+              <div className="flex-1 space-y-2.5 min-w-0">
+                <div><p className="text-gray-500 text-[11px] font-medium">Eaten</p><p className="text-lg font-bold leading-tight">{tci} <span className="text-sm font-normal text-gray-500">/ {dt}</span></p></div>
+                <div><p className="text-gray-500 text-[11px] font-medium">Burned</p><p className="text-lg font-bold leading-tight text-orange-400">{tcb} <span className="text-sm font-normal text-gray-500">kcal</span></p></div>
+                <div><p className="text-gray-500 text-[11px] font-medium">Est. BMR</p><p className="text-sm font-semibold text-gray-400">{effectiveBmr} kcal/day</p></div>
               </div>
             </div>
-
-            {/* Burn Progress Bar */}
-            <div className="mb-3">
-              <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span className="flex items-center gap-1"><Clock size={10}/> BMR Burn</span>
-                  <span>{bmrBurnedSoFar} / {effectiveBmr}</span>
-              </div>
-              <div className="w-full bg-gray-800 rounded-full h-2">
-                <div 
-                  className="h-2 rounded-full transition-all duration-1000 bg-orange-500" 
-                  style={{ width: `${burnProgress}%` }}
-                ></div>
-              </div>
+            <div className={`mt-4 pt-4 border-t border-white/10 grid ${profile.waterTrackingEnabled?'grid-cols-4':'grid-cols-3'} gap-1`}>
+              <MiniMetric icon={<Utensils size={14} className="text-green-400"/>} label="Eaten" value={`${Math.round((tci/dt)*100)}%`} progress={tci/dt} color="#22c55e"/>
+              <MiniMetric icon={<Clock size={14} className="text-orange-400"/>} label="BMR" value={`${bmrSF}`} progress={bmrSF/effectiveBmr} color="#f97316"/>
+              <MiniMetric icon={<Activity size={14} className="text-yellow-400"/>} label="Exercise" value={`${ecb}`} progress={ecb/(profile.dailyExerciseGoal||300)} color="#eab308"/>
+              {profile.waterTrackingEnabled&&<MiniMetric icon={<Droplets size={14} className="text-blue-400"/>} label="Water" value={formatWaterAmount(wim,wu)} progress={wim/wgm} color="#3b82f6"/>}
             </div>
-
-            {/* Exercise Calories */}
-            <div>
-              <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span className="flex items-center gap-1"><Activity size={10}/> Exercise</span>
-                  <span>{exerciseCaloriesBurned} / {profile.dailyExerciseGoal || 300} kcal</span>
-              </div>
-              <div className="w-full bg-gray-800 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-1000 ${
-                    exerciseCaloriesBurned >= (profile.dailyExerciseGoal || 300) ? 'bg-green-500' : 'bg-green-400'
-                  }`}
-                  style={{ width: `${Math.min((exerciseCaloriesBurned / (profile.dailyExerciseGoal || 300)) * 100, 100)}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Water Intake - Only show when water tracking is enabled */}
-            {profile.waterTrackingEnabled && (
-              <div className="mt-3">
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span className="flex items-center gap-1"><Droplets size={10}/> Water</span>
-                    <span>{formatWaterAmount(waterIntakeMl, waterUnit)} / {formatWaterAmount(waterGoalMl, waterUnit)}</span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-1000 ${
-                      waterIntakeMl >= waterGoalMl ? 'bg-green-500' : 'bg-blue-400'
-                    }`}
-                    style={{ width: `${Math.min((waterIntakeMl / waterGoalMl) * 100, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Prediction & Metrics */}
-      <div className="px-6 -mt-4 grid grid-cols-2 gap-4">
-        <button 
-            onClick={() => setShowImpactHistory(true)}
-            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center active:scale-95 transition-transform relative group"
-        >
-            <div className={`p-2 rounded-full mb-2 ${predictedWeightChange > 0 ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>
-                {predictedWeightChange > 0 ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}
-            </div>
-            <p className="text-xs text-gray-400 font-medium">Daily Impact</p>
-            <p className={`text-lg font-bold ${predictedWeightChange > 0 ? 'text-gray-800' : 'text-gray-800'}`}>
-                {predictedWeightChange > 0 ? '+' : ''}
-                {profile.weightUnit === 'lbs' 
-                  ? kgToLbs(predictedWeightChange).toFixed(3)
-                  : predictedWeightChange.toFixed(3)
-                } <span className="text-sm font-normal text-gray-500">{profile.weightUnit || 'kg'}</span>
-            </p>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <BarChart3 size={14} className="text-gray-400" />
-            </div>
-            <p className="text-[10px] text-brand-500 mt-1">Tap for history</p>
+      <div className="px-6 -mt-3 grid grid-cols-2 gap-3">
+        <button onClick={()=>setShowImpactHistory(true)} className="bg-white p-4 rounded-2xl shadow-card hover:shadow-card-hover flex flex-col items-center text-center active:scale-[0.97] transition-all relative group">
+          <div className={`p-2.5 rounded-xl mb-2 ${pwc>0?'bg-red-50 text-red-500':'bg-green-50 text-green-500'}`}>{pwc>0?<TrendingUp size={18}/>:<TrendingDown size={18}/>}</div>
+          <p className="text-[11px] text-gray-400 font-medium">Daily Impact</p>
+          <p className="text-lg font-bold text-gray-900 tracking-tight">{pwc>0?'+':''}{profile.weightUnit==='lbs'?kgToLbs(pwc).toFixed(3):pwc.toFixed(3)} <span className="text-xs font-normal text-gray-400">{profile.weightUnit||'kg'}</span></p>
+          <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity"><BarChart3 size={12} className="text-gray-300"/></div>
+          <p className="text-[10px] text-brand-500 font-medium mt-1">Tap for history</p>
         </button>
-
-        <button 
-            onClick={() => onUpdateWeight(predictedWeight)}
-            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center active:scale-95 transition-transform"
-        >
-            <div className="p-2 rounded-full mb-2 bg-blue-50 text-blue-500">
-                <Scale size={20}/>
-            </div>
-            <p className="text-xs text-gray-400 font-medium">
-              {Math.abs(predictedWeight - profile.weight) > 0.001 ? 'Predicted Weight' : 'Current Weight'}
-            </p>
-             <p className="text-lg font-bold text-gray-800">
-                {profile.weightUnit === 'lbs' 
-                  ? (kgToLbs(predictedWeight)).toFixed(1) 
-                  : predictedWeight.toFixed(1)
-                } <span className="text-sm font-normal text-gray-500">{profile.weightUnit || 'kg'}</span>
-            </p>
-            {Math.abs(predictedWeight - profile.weight) > 0.001 && (
-              <p className="text-[10px] text-blue-500 mt-1">Tap to update</p>
-            )}
+        <button onClick={()=>onUpdateWeight(pw)} className="bg-white p-4 rounded-2xl shadow-card hover:shadow-card-hover flex flex-col items-center text-center active:scale-[0.97] transition-all">
+          <div className="p-2.5 rounded-xl mb-2 bg-accent-50 text-accent-500"><Scale size={18}/></div>
+          <p className="text-[11px] text-gray-400 font-medium">{Math.abs(pw-profile.weight)>0.001?'Predicted Weight':'Current Weight'}</p>
+          <p className="text-lg font-bold text-gray-900 tracking-tight">{profile.weightUnit==='lbs'?kgToLbs(pw).toFixed(1):pw.toFixed(1)} <span className="text-xs font-normal text-gray-400">{profile.weightUnit||'kg'}</span></p>
+          {Math.abs(pw-profile.weight)>0.001&&<p className="text-[10px] text-accent-500 font-medium mt-1">Tap to update</p>}
         </button>
       </div>
 
-      {/* Meal Logs Section */}
       <div className="px-6 pt-6 pb-2">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                <History size={18} className="text-brand-500"/> 
-                {isToday(viewDate) ? "Today's Meals" : "Meals"}
-            </h3>
-            {macroData.length > 0 && (
-                 <div className="h-6 w-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={macroData} dataKey="value" innerRadius={0} outerRadius={10} stroke="none">
-                                {macroData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                        </PieChart>
-                    </ResponsiveContainer>
-                 </div>
-            )}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-gray-900 text-lg tracking-tight flex items-center gap-2"><History size={18} className="text-brand-500"/>{isToday(viewDate)?"Today's Meals":"Meals"}</h3>
+          {md.length>0&&<div className="flex items-center gap-3">{md.map((m,i)=><span key={i} className="text-[10px] font-semibold" style={{color:m.color}}>{m.name[0]}:{Math.round(m.value)}g</span>)}<div className="h-5 w-5"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={md} dataKey="value" innerRadius={0} outerRadius={8} stroke="none">{md.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie></PieChart></ResponsiveContainer></div></div>}
+        </div>
+        {dml.length===0?(
+          <div className="text-center py-12 bg-gray-50/80 rounded-2xl border border-dashed border-gray-200">
+            <div className="flex justify-center mb-3"><div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center"><Utensils size={24} className="text-gray-300"/></div></div>
+            <p className="text-gray-500 font-medium mb-1">{isToday(viewDate)?"What did you eat today?":"No meals logged"}</p>
+            <p className="text-gray-400 text-sm mb-4">{isToday(viewDate)?"Snap a photo or describe your meal":"No meals recorded for this date"}</p>
+            {isToday(viewDate)&&<button onClick={onOpenLogger} className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white font-semibold text-sm rounded-xl hover:bg-brand-600 transition-colors shadow-sm"><Plus size={16}/>Log Meal</button>}
           </div>
-        
-        {displayedMealLogs.length === 0 ? (
-          <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-            <p className="text-gray-400 mb-4">No meals logged for {isToday(viewDate) ? "today" : "this date"}.</p>
-            {isToday(viewDate) && (
-                <button 
-                    onClick={onOpenLogger}
-                    className="text-brand-600 font-medium text-sm hover:underline"
-                >
-                    Log your first meal
-                </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {displayedMealLogs.slice().reverse().map((log) => (
-              <div 
-                key={log.id} 
-                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 relative group cursor-pointer active:scale-[0.98] transition-all"
-                onClick={() => setSelectedMealLog(log)}
-              >
-                {log.imageUrl ? (
-                    <img 
-                      src={log.imageUrl} 
-                      className="w-16 h-16 rounded-lg object-cover bg-gray-100" 
-                      alt="meal"
-                    />
-                ) : log.description ? (
-                    <div className="w-16 h-16 rounded-lg bg-brand-50 flex items-center justify-center text-brand-400" title={log.description}>
-                        <PenLine size={24}/>
-                    </div>
-                ) : (
-                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
-                        <Utensils size={24}/>
-                    </div>
-                )}
-                <div className="flex-1">
+        ):(
+          <div className="space-y-3">
+            {dml.slice().reverse().map(log=>(
+              <div key={log.id} className="bg-white p-4 rounded-2xl shadow-card hover:shadow-card-hover flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 cursor-pointer active:scale-[0.98] transition-all" onClick={()=>setSelectedMealLog(log)}>
+                {log.imageUrl?<img src={log.imageUrl} className="w-[4.5rem] h-[4.5rem] rounded-xl object-cover bg-gray-100 flex-shrink-0" alt="meal"/>:log.description?<div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-brand-50 flex items-center justify-center text-brand-400 flex-shrink-0"><PenLine size={24}/></div>:<div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0"><Utensils size={24}/></div>}
+                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-semibold text-gray-800 capitalize">{log.mealType}</p>
-                        <p className="text-xs text-gray-500 line-clamp-1">
-                            {log.items.map(i => i.name).join(', ')}
-                        </p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-900 capitalize">{log.mealType}</p>
+                        <span className="text-[10px] text-gray-400">{new Date(log.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{log.items.map(i=>i.name).join(', ')}</p>
                     </div>
-                    <span className="font-bold text-brand-600">{log.totalCalories}</span>
+                    <span className="font-bold text-brand-600 text-lg ml-2">{log.totalCalories}</span>
                   </div>
-                   <div className="mt-2 flex gap-2 text-[10px] text-gray-400 font-mono">
-                       <span className="bg-gray-50 px-1.5 py-0.5 rounded text-green-600">P: {log.items.reduce((a,b) => a+b.protein, 0)}g</span>
-                       <span className="bg-gray-50 px-1.5 py-0.5 rounded text-yellow-600">C: {log.items.reduce((a,b) => a+b.carbs, 0)}g</span>
-                       <span className="bg-gray-50 px-1.5 py-0.5 rounded text-red-500">F: {log.items.reduce((a,b) => a+b.fat, 0)}g</span>
-                   </div>
+                  <div className="mt-2 flex gap-2">
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-green-50 text-green-600">P: {log.items.reduce((a,b)=>a+b.protein,0)}g</span>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-600">C: {log.items.reduce((a,b)=>a+b.carbs,0)}g</span>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-red-50 text-red-500">F: {log.items.reduce((a,b)=>a+b.fat,0)}g</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -698,34 +249,19 @@ const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
 
-      {/* Exercise Logs Section */}
-      {displayedExerciseLogs.length > 0 && (
+      {del.length>0&&(
         <div className="px-6 pt-6">
-          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
-              <Activity size={18} className="text-orange-500"/> 
-              Exercise
-          </h3>
+          <h3 className="font-bold text-gray-900 text-lg tracking-tight flex items-center gap-2 mb-4"><Activity size={18} className="text-orange-500"/>Exercise</h3>
           <div className="space-y-2">
-            {displayedExerciseLogs.map((log) => (
-              <div key={log.id} className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex justify-between items-center group">
+            {del.map(log=>(
+              <div key={log.id} className="bg-orange-50 p-3.5 rounded-2xl border border-orange-100 flex justify-between items-center group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                    <Activity size={16}/>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{EXERCISE_LABELS[log.type]}</p>
-                    <p className="text-xs text-gray-500">{log.durationMinutes} minutes</p>
-                  </div>
+                  <div className="p-2 bg-orange-100 rounded-xl text-orange-600"><Activity size={16}/></div>
+                  <div><p className="font-medium text-gray-900">{EXERCISE_LABELS[log.type]}</p><p className="text-xs text-gray-500">{log.durationMinutes} minutes</p></div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-orange-600">-{log.caloriesBurned}</span>
-                  <button 
-                    onClick={() => onDeleteExerciseLog(log.id)}
-                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
-                    title="Delete exercise"
-                  >
-                    <Trash2 size={14}/>
-                  </button>
+                  <button onClick={()=>onDeleteExerciseLog(log.id)} className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"><Trash2 size={14}/></button>
                 </div>
               </div>
             ))}
@@ -733,101 +269,36 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* Water Logs Section - Only show when water tracking is enabled */}
-      {profile.waterTrackingEnabled && displayedWaterLogs.length > 0 && (
+      {profile.waterTrackingEnabled&&dwl.length>0&&(
         <div className="px-6 pt-6 pb-6">
-          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4">
-              <Droplets size={18} className="text-blue-500"/> 
-              Water
-          </h3>
+          <h3 className="font-bold text-gray-900 text-lg tracking-tight flex items-center gap-2 mb-4"><Droplets size={18} className="text-blue-500"/>Water</h3>
           <div className="space-y-2">
-            {displayedWaterLogs.slice().reverse().map((log) => (
-              <div key={log.id} className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center group">
+            {dwl.slice().reverse().map(log=>(
+              <div key={log.id} className="bg-blue-50 p-3.5 rounded-2xl border border-blue-100 flex justify-between items-center group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                    <Droplets size={16}/>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{formatWaterAmount(log.amountMl, waterUnit)}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(log.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                    </p>
-                  </div>
+                  <div className="p-2 bg-blue-100 rounded-xl text-blue-600"><Droplets size={16}/></div>
+                  <div><p className="font-medium text-gray-900">{formatWaterAmount(log.amountMl, wu)}</p><p className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</p></div>
                 </div>
-                <button 
-                  onClick={() => onDeleteWaterLog(log.id)}
-                  className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"
-                  title="Delete water log"
-                >
-                  <Trash2 size={14}/>
-                </button>
+                <button onClick={()=>onDeleteWaterLog(log.id)} className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 md:opacity-100"><Trash2 size={14}/></button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Impact History Modal */}
-      {showImpactHistory && (
-        <ImpactHistoryModal
-          profile={profile}
-          logs={logs}
-          exerciseLogs={exerciseLogs}
-          impactHistory={impactHistory}
-          onClose={() => setShowImpactHistory(false)}
-        />
-      )}
-
-      {/* Meal Log Detail Modal */}
-      {selectedMealLog && (
-        <MealLogDetail
-          log={selectedMealLog}
-          onClose={() => setSelectedMealLog(null)}
-          onDelete={onDeleteLog}
-          onImageClick={(url) => { setSelectedMealLog(null); setSelectedImage(url); }}
-        />
-      )}
-
-      {/* Image Lightbox */}
-      {selectedImage && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center animate-in fade-in duration-200 cursor-pointer"
-          onClick={() => setSelectedImage(null)}
-        >
-          <img 
-            src={selectedImage} 
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
-            alt="Meal preview"
-          />
+      {showImpactHistory&&<ImpactHistoryModal profile={profile} logs={logs} exerciseLogs={exerciseLogs} impactHistory={impactHistory} onClose={()=>setShowImpactHistory(false)}/>}
+      {selectedMealLog&&<MealLogDetail log={selectedMealLog} onClose={()=>setSelectedMealLog(null)} onDelete={onDeleteLog} onImageClick={(url)=>{setSelectedMealLog(null);setSelectedImage(url)}}/>}
+      {selectedImage&&(
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center animate-in fade-in duration-200 cursor-pointer" onClick={()=>setSelectedImage(null)}>
+          <img src={selectedImage} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" alt="Meal preview"/>
         </div>
       )}
 
-      {/* FAB - Only show if viewing Today */}
-      {isToday(viewDate) && (
+      {isToday(viewDate)&&(
         <div className="fixed bottom-10 left-0 right-0 flex justify-center gap-3 z-40 pointer-events-none">
-            <button
-              onClick={onOpenLogger}
-              className={`bg-brand-600 text-white rounded-full p-4 shadow-2xl shadow-brand-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 ${profile.waterTrackingEnabled ? 'px-4' : 'px-5'}`}
-            >
-              <Utensils size={20} />
-              <span className="font-semibold">Meal</span>
-            </button>
-            <button
-              onClick={onOpenExerciseLogger}
-              className={`bg-orange-500 text-white rounded-full p-4 shadow-2xl shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 ${profile.waterTrackingEnabled ? 'px-4' : 'px-5'}`}
-            >
-              <Activity size={20} />
-              <span className="font-semibold">Exercise</span>
-            </button>
-            {profile.waterTrackingEnabled && (
-              <button
-                onClick={onOpenWaterTracker}
-                className="bg-blue-500 text-white rounded-full p-4 shadow-2xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 px-4"
-              >
-                <Droplets size={20} />
-                <span className="font-semibold">Water</span>
-              </button>
-            )}
+          <button onClick={onOpenLogger} className={`bg-brand-600 text-white rounded-full p-4 shadow-2xl shadow-brand-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 ${profile.waterTrackingEnabled?'px-4':'px-5'}`}><Utensils size={20}/><span className="font-semibold">Meal</span></button>
+          <button onClick={onOpenExerciseLogger} className={`bg-orange-500 text-white rounded-full p-4 shadow-2xl shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 ${profile.waterTrackingEnabled?'px-4':'px-5'}`}><Activity size={20}/><span className="font-semibold">Exercise</span></button>
+          {profile.waterTrackingEnabled&&<button onClick={onOpenWaterTracker} className="bg-blue-500 text-white rounded-full p-4 shadow-2xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all pointer-events-auto flex items-center gap-2 px-4"><Droplets size={20}/><span className="font-semibold">Water</span></button>}
         </div>
       )}
     </div>

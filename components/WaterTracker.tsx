@@ -41,10 +41,11 @@ const WaterTracker: React.FC<WaterTrackerProps> = ({ waterUnit, dailyGoalMl, tod
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 sm:pb-4 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 sm:pb-4 modal-backdrop">
+      <div className="bg-white w-full max-w-lg rounded-t-[1.25rem] sm:rounded-[1.25rem] shadow-elevated overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0">
+        <div className="drag-handle sm:hidden" />
         {/* Header */}
-        <div className="p-4 border-b flex justify-between items-center bg-white sticky top-0 z-10">
+        <div className="px-5 pb-4 pt-2 sm:pt-4 sm:px-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Droplets className="text-blue-500" size={20} />
             Log Water

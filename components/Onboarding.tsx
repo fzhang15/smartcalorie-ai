@@ -63,20 +63,33 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-6 pb-safe">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 relative">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-6 pb-safe relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-72 h-72 bg-brand-500/5 rounded-full -translate-y-1/3 translate-x-1/3" />
+      <div className="absolute bottom-0 left-0 w-56 h-56 bg-accent-500/5 rounded-full translate-y-1/3 -translate-x-1/3" />
+      
+      <div className="max-w-md w-full bg-white rounded-[1.25rem] shadow-elevated p-8 relative z-10">
         {onCancel && step === 1 && (
-            <button onClick={onCancel} className="absolute top-8 left-8 text-gray-400 hover:text-gray-600">
+            <button onClick={onCancel} className="absolute top-8 left-8 text-gray-400 hover:text-gray-600 transition-colors">
                 <ChevronLeft size={24} />
             </button>
         )}
         
         <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2 pt-2">Welcome</h1>
-            <p className="text-gray-500">Let's calculate your metabolic baseline.</p>
-            <div className="flex gap-2 mt-4">
-                <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
-                <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
+            {/* App Icon */}
+            <div className="flex items-center gap-3 mb-4 pt-2">
+              <div className="w-12 h-12 bg-brand-500 rounded-2xl flex items-center justify-center shadow-sm">
+                <span className="text-white text-xl font-extrabold">S</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">SmartCalorie</h1>
+                <p className="text-xs text-gray-400 font-medium">AI-Powered Nutrition Tracking</p>
+              </div>
+            </div>
+            <p className="text-gray-500 text-sm">Let's calculate your metabolic baseline.</p>
+            <div className="flex gap-2 mt-5">
+                <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= 1 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
+                <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= 2 ? 'bg-brand-500' : 'bg-gray-200'}`}></div>
             </div>
         </div>
 
@@ -87,7 +100,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
                 type="text"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-shadow"
                 placeholder="Your Name"
                 value={formData.name || ''}
                 onChange={(e) => handleChange('name', e.target.value)}
@@ -116,7 +129,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
               <input
                 type="number"
                 inputMode="numeric"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow"
                 placeholder="Years"
                 value={formData.age || ''}
                 onChange={(e) => handleChange('age', parseInt(e.target.value) || 0)}
@@ -133,7 +146,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
               <input
                 type="number"
                 inputMode="decimal"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow"
                 placeholder="175"
                 value={formData.height || ''}
                 onChange={(e) => handleChange('height', parseInt(e.target.value) || 0)}
@@ -172,7 +185,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                   type="number"
                   inputMode="decimal"
                   step="0.1"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow"
                   placeholder={formData.weightUnit === 'lbs' ? 'e.g. 154' : 'e.g. 70'}
                   value={weightInput || ''}
                   onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
@@ -188,7 +201,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
             (step === 1 && (!formData.name || !formData.age)) ||
             (step === 2 && (!formData.height || !weightInput))
           }
-          className="w-full mt-8 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full mt-8 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
         >
           {step === 2 ? 'Finish Setup' : 'Next'} <ArrowRight size={18} />
         </button>

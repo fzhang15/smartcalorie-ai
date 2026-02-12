@@ -27,11 +27,11 @@ const WeightInput: React.FC<WeightInputProps> = ({ currentWeight, weightUnit, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-backdrop">
+      <div className="bg-white w-full max-w-sm rounded-[1.25rem] p-6 shadow-elevated animate-in fade-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-800">Update Weight</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+          <h3 className="text-xl font-bold text-gray-900 tracking-tight">Update Weight</h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-xl transition-colors">
             <X size={20} className="text-gray-500" />
           </button>
         </div>
