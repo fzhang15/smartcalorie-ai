@@ -1,27 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { UserProfile, MealLog, ExerciseLog, DailyImpactRecord, WaterLog } from '../types';
 import { CALORIES_PER_KG_FAT, EXERCISE_LABELS, kgToLbs, formatWaterAmount } from '../constants';
-import { Plus, Flame, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3, PenLine, Droplets } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Scale, History, Utensils, ChevronLeft, ChevronRight, Calendar, Trash2, Clock, Activity, BarChart3, PenLine, Droplets } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ImpactHistoryModal from './ImpactHistoryModal';
 import MealLogDetail from './MealLogDetail';
-
-const CalorieRing: React.FC<{eaten:number;target:number;netCalories:number;isToday:boolean}> = ({eaten,target,netCalories,isToday}) => {
-  const size=148, sw=10, r=(size-sw)/2, c=r*2*Math.PI;
-  const prog=Math.min(eaten/target,1.5), off=c-prog*c, over=eaten>target;
-  return (
-    <div className="relative flex items-center justify-center flex-shrink-0" style={{width:size,height:size}}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw}/>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={over?'#ef4444':'#22c55e'} strokeWidth={sw} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" className="progress-ring-circle"/>
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-extrabold text-white tracking-tight">{isToday?(netCalories>0?'+':'')+netCalories:eaten}</span>
-        <span className="text-[11px] text-gray-400 font-medium mt-0.5">{isToday?'net kcal':'kcal eaten'}</span>
-      </div>
-    </div>
-  );
-};
+import CalorieGauge from './CalorieGauge';
 
 const MiniMetric: React.FC<{icon:React.ReactNode;label:string;value:string;progress:number;color:string}> = ({icon,label,value,progress,color}) => (
   <div className="flex flex-col items-center gap-1">
@@ -175,12 +159,12 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
           <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800"/>
           <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/5 rounded-full -translate-y-1/2 translate-x-1/2"/>
           <div className="relative z-10">
-            <div className="flex items-center gap-4">
-              <CalorieRing eaten={tci} target={dt} netCalories={nc} isToday={isToday(viewDate)}/>
-              <div className="flex-1 space-y-2.5 min-w-0">
-                <div><p className="text-gray-500 text-[11px] font-medium">Eaten</p><p className="text-lg font-bold leading-tight">{tci} <span className="text-sm font-normal text-gray-500">/ {dt}</span></p></div>
-                <div><p className="text-gray-500 text-[11px] font-medium">Burned</p><p className="text-lg font-bold leading-tight text-orange-400">{tcb} <span className="text-sm font-normal text-gray-500">kcal</span></p></div>
-                <div><p className="text-gray-500 text-[11px] font-medium">Est. BMR</p><p className="text-sm font-semibold text-gray-400">{effectiveBmr} kcal/day</p></div>
+            <div className="flex flex-col items-center">
+              <CalorieGauge netCalories={nc} bmr={effectiveBmr} eaten={tci} burned={tcb}/>
+              <div className="flex justify-around w-full mt-2 pt-2 border-t border-white/10">
+                <div className="text-center"><p className="text-gray-500 text-[10px] font-medium">Eaten</p><p className="text-base font-bold leading-tight">{tci} <span className="text-xs font-normal text-gray-500">/ {dt}</span></p></div>
+                <div className="text-center"><p className="text-gray-500 text-[10px] font-medium">Burned</p><p className="text-base font-bold leading-tight text-orange-400">{tcb} <span className="text-xs font-normal text-gray-500">kcal</span></p></div>
+                <div className="text-center"><p className="text-gray-500 text-[10px] font-medium">BMR</p><p className="text-sm font-semibold text-gray-400">{effectiveBmr}/day</p></div>
               </div>
             </div>
             <div className={`mt-4 pt-4 border-t border-white/10 grid ${profile.waterTrackingEnabled?'grid-cols-4':'grid-cols-3'} gap-1`}>
