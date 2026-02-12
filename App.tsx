@@ -423,6 +423,9 @@ const App: React.FC = () => {
     const current = new Date(startOfUpdateDay);
     const effectiveBmr = profile.bmr * (profile.calibrationFactor || 1.0);
     
+    // Track total BMR burned across the period for calibration
+    let totalBmrBurned = 0;
+    
     // Get impact records for the period
     const recordsInPeriod: { date: string; impact: number }[] = [];
     
@@ -445,37 +448,39 @@ const App: React.FC = () => {
       const hasLogs = logs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime()) ||
                       exerciseLogs.some(log => log.timestamp >= dayStart.getTime() && log.timestamp <= dayEnd.getTime());
       
+      // Calculate BMR for this day (needed for both impact tracking and calibration)
+      let bmrBurned: number;
+      const lastUpdateDate = new Date(lastUpdate);
+      const isFirstDay = current.getDate() === lastUpdateDate.getDate() &&
+                         current.getMonth() === lastUpdateDate.getMonth() &&
+                         current.getFullYear() === lastUpdateDate.getFullYear();
+      const isToday = current.getDate() === new Date().getDate() &&
+                     current.getMonth() === new Date().getMonth() &&
+                     current.getFullYear() === new Date().getFullYear();
+      
+      if (isFirstDay && isToday) {
+        const hoursElapsed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
+        bmrBurned = Math.round((effectiveBmr / 24) * Math.max(0, hoursElapsed));
+      } else if (isFirstDay) {
+        const endOfFirstDay = new Date(lastUpdate);
+        endOfFirstDay.setHours(23, 59, 59, 999);
+        const hoursElapsed = (endOfFirstDay.getTime() - lastUpdate) / (1000 * 60 * 60);
+        bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
+      } else if (isToday) {
+        const now = new Date();
+        const dayProgress = (now.getHours() + now.getMinutes() / 60) / 24;
+        bmrBurned = Math.round(effectiveBmr * dayProgress);
+      } else {
+        bmrBurned = effectiveBmr;
+      }
+
       if (hasLogs) {
-        // Calculate BMR for this day
-        let bmrBurned: number;
-        const lastUpdateDate = new Date(lastUpdate);
-        const isFirstDay = current.getDate() === lastUpdateDate.getDate() &&
-                           current.getMonth() === lastUpdateDate.getMonth() &&
-                           current.getFullYear() === lastUpdateDate.getFullYear();
-        const isToday = current.getDate() === new Date().getDate() &&
-                       current.getMonth() === new Date().getMonth() &&
-                       current.getFullYear() === new Date().getFullYear();
-        
-        if (isFirstDay && isToday) {
-          const hoursElapsed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
-          bmrBurned = Math.round((effectiveBmr / 24) * Math.max(0, hoursElapsed));
-        } else if (isFirstDay) {
-          const endOfFirstDay = new Date(lastUpdate);
-          endOfFirstDay.setHours(23, 59, 59, 999);
-          const hoursElapsed = (endOfFirstDay.getTime() - lastUpdate) / (1000 * 60 * 60);
-          bmrBurned = Math.round((effectiveBmr / 24) * hoursElapsed);
-        } else if (isToday) {
-          const now = new Date();
-          const dayProgress = (now.getHours() + now.getMinutes() / 60) / 24;
-          bmrBurned = Math.round(effectiveBmr * dayProgress);
-        } else {
-          bmrBurned = effectiveBmr;
-        }
-        
         const dayImpact = (dayMealCalories - bmrBurned - dayExerciseCalories) / CALORIES_PER_KG_FAT;
         predictedChange += dayImpact;
+        totalBmrBurned += bmrBurned;
         recordsInPeriod.push({ date: dateKey, impact: dayImpact });
       }
+      // No-log days: assume net calories = 0 (user forgot to log), no contribution to prediction or calibration
       
       current.setDate(current.getDate() + 1);
     }
@@ -483,22 +488,25 @@ const App: React.FC = () => {
     // Calculate calibration error
     const predictionError = predictedChange - actualChange; // Positive = overpredicted weight gain
     
-    // Update calibration factor with exponential smoothing
-    // Only adjust when prediction error is significant (>10%)
+    // Update calibration factor using BMR-based correction
+    // If actual weight < predicted → real BMR is higher → factor should increase
+    // If actual weight > predicted → real BMR is lower → factor should decrease
     let newCalibrationFactor = profile.calibrationFactor || 1.0;
-    if (Math.abs(predictedChange) > 0.001) {
-      const relativeError = Math.abs(actualChange - predictedChange) / Math.abs(predictedChange);
+    if (totalBmrBurned > 0) {
+      // How much the BMR needs to be corrected (as a ratio)
+      // predictionError > 0 means we overpredicted weight gain → BMR is too low → increase factor
+      const bmrCorrectionRatio = 1 + (predictedChange - actualChange) * CALORIES_PER_KG_FAT / totalBmrBurned;
+      const thisMeasurementFactor = newCalibrationFactor * bmrCorrectionRatio;
       
-      // Only calibrate when error exceeds 10% threshold
+      // Only calibrate when the implied BMR change is significant (>5%)
       // Small errors may just be measurement noise (water weight, scale variance, etc.)
-      if (relativeError > 0.1) {
-        const thisMeasurementFactor = actualChange / predictedChange;
+      if (Math.abs(bmrCorrectionRatio - 1) > 0.05) {
         // Clamp to reasonable range (0.5 to 1.5)
         const clampedFactor = Math.max(0.5, Math.min(1.5, thisMeasurementFactor));
-        // Exponential smoothing: 70% old, 30% new
-        newCalibrationFactor = 0.7 * newCalibrationFactor + 0.3 * clampedFactor;
+        // Exponential smoothing: 50% old, 50% new
+        newCalibrationFactor = 0.5 * newCalibrationFactor + 0.5 * clampedFactor;
       }
-      // If error <= 10%, keep current calibration factor (prediction was accurate enough)
+      // If correction <= 5%, keep current calibration factor (prediction was accurate enough)
     }
     
     // Correct historical impact records
@@ -546,6 +554,7 @@ const App: React.FC = () => {
       actualChange,
       predictedChange,
       predictionError,
+      totalBmrBurned,
       oldCalibrationFactor: profile.calibrationFactor,
       newCalibrationFactor,
       daysAffected: recordsInPeriod.length,
