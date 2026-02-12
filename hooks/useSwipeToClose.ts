@@ -1,8 +1,14 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 
 export function useSwipeToClose(onClose: () => void, threshold = 100) {
   const touchStartY = useRef<number | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
+
+  // Lock body scroll when modal is mounted
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
