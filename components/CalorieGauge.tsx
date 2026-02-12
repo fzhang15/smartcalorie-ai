@@ -8,7 +8,7 @@ interface CalorieGaugeProps {
 }
 
 const CalorieGauge: React.FC<CalorieGaugeProps> = ({ netCalories, bmr, eaten, burned }) => {
-  const width = 160;
+  const width = 190;
   const height = 110;
   const cx = width / 2;
   const cy = 90;
@@ -201,7 +201,7 @@ const CalorieGauge: React.FC<CalorieGaugeProps> = ({ netCalories, bmr, eaten, bu
                   fill="rgba(255,255,255,0.4)"
                   fontSize="8"
                   fontWeight="500"
-                  textAnchor="middle"
+                  textAnchor={tick.svgAngle <= 200 ? 'end' : tick.svgAngle >= 340 ? 'start' : 'middle'}
                   dominantBaseline="middle"
                 >
                   {tick.label}
