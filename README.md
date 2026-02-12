@@ -242,14 +242,27 @@ predictionError = predictedChange − actualChange
 - `predictionError > 0` → We overpredicted weight gain → real BMR is **higher** than estimated → factor should **increase**
 - `predictionError < 0` → We underpredicted weight gain → real BMR is **lower** than estimated → factor should **decrease**
 
-**BMR correction ratio:**
+**Deriving the BMR correction ratio:**
+
+The only tunable variable in the weight prediction is the BMR. If the *true* BMR were `r` times our current estimate, the extra calories burned would shift the prediction. For the corrected prediction to match reality:
 
 ```
-bmrCorrectionRatio = 1 + (predictionError × 7700) / totalBmrBurned
+predictedChange − [totalBmrBurned × (r − 1) / 7700] = actualChange
+```
+
+Solving for `r`:
+
+```
+totalBmrBurned × (r − 1) / 7700 = predictedChange − actualChange
+r − 1 = (predictedChange − actualChange) × 7700 / totalBmrBurned
+r = 1 + (predictionError × 7700) / totalBmrBurned
+```
+
+Where `totalBmrBurned` is the sum of effective BMR burned across all logged days in the period. Since `Effective BMR = BMR × factor`, the factor itself is multiplied by `r`:
+
+```
 thisMeasurementFactor = oldFactor × bmrCorrectionRatio
 ```
-
-Where `totalBmrBurned` is the sum of effective BMR burned across all logged days in the period.
 
 **Three safety guards prevent wild swings:**
 
