@@ -161,17 +161,65 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
           <div className="relative z-10">
             <div className="flex flex-col items-center">
               <CalorieGauge netCalories={nc} bmr={effectiveBmr} eaten={tci} burned={tcb}/>
-              <div className="flex justify-around w-full mt-2 pt-2 border-t border-white/10">
-                <div className="text-center"><p className="text-gray-500 text-[10px] font-medium">Eaten</p><p className="text-base font-bold leading-tight">{tci} <span className="text-xs font-normal text-gray-500">/ {dt}</span></p></div>
-                <div className="text-center"><p className="text-gray-500 text-[10px] font-medium">Burned</p><p className="text-base font-bold leading-tight text-orange-400">{tcb} <span className="text-xs font-normal text-gray-500">kcal</span></p></div>
-                <div className="text-center"><p className="text-gray-500 text-[10px] font-medium">BMR</p><p className="text-sm font-semibold text-gray-400">{effectiveBmr}/day</p></div>
-              </div>
             </div>
-            <div className={`mt-4 pt-4 border-t border-white/10 grid ${profile.waterTrackingEnabled?'grid-cols-4':'grid-cols-3'} gap-1`}>
-              <MiniMetric icon={<Utensils size={14} className="text-green-400"/>} label="Eaten" value={`${Math.round((tci/dt)*100)}%`} progress={tci/dt} color="#22c55e"/>
-              <MiniMetric icon={<Clock size={14} className="text-orange-400"/>} label="BMR" value={`${bmrSF}`} progress={bmrSF/effectiveBmr} color="#f97316"/>
-              <MiniMetric icon={<Activity size={14} className="text-yellow-400"/>} label="Exercise" value={`${ecb}`} progress={ecb/(profile.dailyExerciseGoal||300)} color="#eab308"/>
-              {profile.waterTrackingEnabled&&<MiniMetric icon={<Droplets size={14} className="text-blue-400"/>} label="Water" value={formatWaterAmount(wim,wu)} progress={wim/wgm} color="#3b82f6"/>}
+            <div className={`mt-3 pt-3 border-t border-white/10 grid ${profile.waterTrackingEnabled?'grid-cols-4':'grid-cols-3'} gap-2`}>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-11 h-11 relative flex items-center justify-center">
+                  <svg width="44" height="44" className="absolute inset-0 transform -rotate-90">
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="#22c55e" strokeWidth="3" strokeDasharray={`${18*2*Math.PI}`} strokeDashoffset={`${18*2*Math.PI*(1-Math.min(tci/dt,1))}`} strokeLinecap="round" className="progress-ring-circle"/>
+                  </svg>
+                  <Utensils size={14} className="relative z-10 text-green-400"/>
+                </div>
+                <span className="text-[10px] text-gray-500 font-medium leading-none">Eaten</span>
+                <div className="text-center leading-none">
+                  <span className="text-sm text-white font-bold">{tci}</span>
+                  <span className="text-[9px] text-gray-500 font-normal"> / {dt}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-11 h-11 relative flex items-center justify-center">
+                  <svg width="44" height="44" className="absolute inset-0 transform -rotate-90">
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="#f97316" strokeWidth="3" strokeDasharray={`${18*2*Math.PI}`} strokeDashoffset={`${18*2*Math.PI*(1-Math.min(bmrSF/effectiveBmr,1))}`} strokeLinecap="round" className="progress-ring-circle"/>
+                  </svg>
+                  <Clock size={14} className="relative z-10 text-orange-400"/>
+                </div>
+                <span className="text-[10px] text-gray-500 font-medium leading-none">Burned</span>
+                <div className="text-center leading-none">
+                  <span className="text-sm text-orange-400 font-bold">{tcb}</span>
+                  <span className="text-[9px] text-gray-500 font-normal"> kcal</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-11 h-11 relative flex items-center justify-center">
+                  <svg width="44" height="44" className="absolute inset-0 transform -rotate-90">
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="#eab308" strokeWidth="3" strokeDasharray={`${18*2*Math.PI}`} strokeDashoffset={`${18*2*Math.PI*(1-Math.min(ecb/(profile.dailyExerciseGoal||300),1))}`} strokeLinecap="round" className="progress-ring-circle"/>
+                  </svg>
+                  <Activity size={14} className="relative z-10 text-yellow-400"/>
+                </div>
+                <span className="text-[10px] text-gray-500 font-medium leading-none">Exercise</span>
+                <div className="text-center leading-none">
+                  <span className="text-sm text-white font-bold">{ecb}</span>
+                  <span className="text-[9px] text-gray-500 font-normal"> kcal</span>
+                </div>
+              </div>
+              {profile.waterTrackingEnabled&&(
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="w-11 h-11 relative flex items-center justify-center">
+                    <svg width="44" height="44" className="absolute inset-0 transform -rotate-90">
+                      <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+                      <circle cx="22" cy="22" r="18" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray={`${18*2*Math.PI}`} strokeDashoffset={`${18*2*Math.PI*(1-Math.min(wim/wgm,1))}`} strokeLinecap="round" className="progress-ring-circle"/>
+                    </svg>
+                    <Droplets size={14} className="relative z-10 text-blue-400"/>
+                  </div>
+                  <span className="text-[10px] text-gray-500 font-medium leading-none">Water</span>
+                  <div className="text-center leading-none">
+                    <span className="text-sm text-white font-bold">{formatWaterAmount(wim,wu)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -189,7 +237,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
           <div className="p-2.5 rounded-xl mb-2 bg-accent-50 text-accent-500"><Scale size={18}/></div>
           <p className="text-[11px] text-gray-400 font-medium">{Math.abs(pw-profile.weight)>0.001?'Predicted Weight':'Current Weight'}</p>
           <p className="text-lg font-bold text-gray-900 tracking-tight">{profile.weightUnit==='lbs'?kgToLbs(pw).toFixed(1):pw.toFixed(1)} <span className="text-xs font-normal text-gray-400">{profile.weightUnit||'kg'}</span></p>
-          {Math.abs(pw-profile.weight)>0.001&&<p className="text-[10px] text-accent-500 font-medium mt-1">Tap to update</p>}
+          {Math.abs(pw-profile.weight)>0.001&&<p className="text-[10px] text-accent-500 font-medium mt-1">Tap to calibrate</p>}
         </button>
       </div>
 
