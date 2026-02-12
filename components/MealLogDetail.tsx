@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Utensils, PenLine, Trash2 } from 'lucide-react';
 import { MealLog } from '../types';
+import { useSwipeToClose } from '../hooks/useSwipeToClose';
 
 interface MealLogDetailProps {
   log: MealLog;
@@ -10,6 +11,7 @@ interface MealLogDetailProps {
 }
 
 const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, onImageClick }) => {
+  const swipe = useSwipeToClose(onClose);
   const totalProtein = log.items.reduce((a, b) => a + b.protein, 0);
   const totalCarbs = log.items.reduce((a, b) => a + b.carbs, 0);
   const totalFat = log.items.reduce((a, b) => a + b.fat, 0);
@@ -27,6 +29,10 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
       <div
         className="bg-white w-full max-w-lg rounded-t-[1.25rem] sm:rounded-[1.25rem] shadow-elevated overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={swipe.onTouchStart}
+        onTouchMove={swipe.onTouchMove}
+        onTouchEnd={swipe.onTouchEnd}
+        style={swipe.style}
       >
         <div className="drag-handle sm:hidden" />
         {/* Header */}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Droplets, Plus } from 'lucide-react';
 import { WaterLog, WaterUnit } from '../types';
 import { WATER_QUICK_ADD, formatWaterAmount, ozToMl } from '../constants';
+import { useSwipeToClose } from '../hooks/useSwipeToClose';
 
 interface WaterTrackerProps {
   waterUnit: WaterUnit;
@@ -12,7 +13,8 @@ interface WaterTrackerProps {
 }
 
 const WaterTracker: React.FC<WaterTrackerProps> = ({ waterUnit, dailyGoalMl, todayLogs, onLogWater, onClose }) => {
-  const [customAmount, setCustomAmount] = useState<string>('');
+const swipe = useSwipeToClose(onClose);
+const [customAmount, setCustomAmount] = useState<string>('');
 
   const todayTotal = todayLogs.reduce((acc, log) => acc + log.amountMl, 0);
   const progressPercent = Math.min((todayTotal / dailyGoalMl) * 100, 100);
@@ -42,7 +44,8 @@ const WaterTracker: React.FC<WaterTrackerProps> = ({ waterUnit, dailyGoalMl, tod
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 sm:pb-4 modal-backdrop">
-      <div className="bg-white w-full max-w-lg rounded-t-[1.25rem] sm:rounded-[1.25rem] shadow-elevated overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0">
+      <div className="bg-white w-full max-w-lg rounded-t-[1.25rem] sm:rounded-[1.25rem] shadow-elevated overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0"
+        onTouchStart={swipe.onTouchStart} onTouchMove={swipe.onTouchMove} onTouchEnd={swipe.onTouchEnd} style={swipe.style}>
         <div className="drag-handle sm:hidden" />
         {/* Header */}
         <div className="px-5 pb-4 pt-2 sm:pt-4 sm:px-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">

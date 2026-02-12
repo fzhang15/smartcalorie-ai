@@ -191,24 +191,24 @@ const CalorieGauge: React.FC<CalorieGaugeProps> = ({ netCalories, bmr }) => {
           +{cap}
         </text>
 
-        {/* Subtle "deficit" / "surplus" labels */}
+        {/* "deficit" / "surplus" labels */}
         <text
-          x={polar(225, r + strokeWidth / 2 + 16).x}
-          y={polar(225, r + strokeWidth / 2 + 16).y}
-          fill="rgba(16,185,129,0.3)"
-          fontSize="7"
-          fontWeight="500"
+          x={polar(225, r + strokeWidth / 2 + 18).x}
+          y={polar(225, r + strokeWidth / 2 + 18).y}
+          fill="rgba(16,185,129,0.45)"
+          fontSize="10"
+          fontWeight="600"
           textAnchor="middle"
           dominantBaseline="middle"
         >
           deficit
         </text>
         <text
-          x={polar(315, r + strokeWidth / 2 + 16).x}
-          y={polar(315, r + strokeWidth / 2 + 16).y}
-          fill="rgba(244,63,94,0.3)"
-          fontSize="7"
-          fontWeight="500"
+          x={polar(315, r + strokeWidth / 2 + 18).x}
+          y={polar(315, r + strokeWidth / 2 + 18).y}
+          fill="rgba(244,63,94,0.45)"
+          fontSize="10"
+          fontWeight="600"
           textAnchor="middle"
           dominantBaseline="middle"
         >

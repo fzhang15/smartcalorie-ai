@@ -3,6 +3,7 @@ import { MealLog, ExerciseLog, UserProfile, DailyImpactRecord } from '../types';
 import { CALORIES_PER_KG_FAT, kgToLbs } from '../constants';
 import { X, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
+import { useSwipeToClose } from '../hooks/useSwipeToClose';
 
 interface ImpactHistoryModalProps {
   profile: UserProfile;
@@ -37,6 +38,7 @@ const ImpactHistoryModal: React.FC<ImpactHistoryModalProps> = ({
   onClose,
 }) => {
   const [trendView, setTrendView] = useState<TrendView>('daily');
+  const swipe = useSwipeToClose(onClose);
 
   // Helper to check if a date is today
   const isToday = (date: Date): boolean => {
@@ -300,6 +302,10 @@ const ImpactHistoryModal: React.FC<ImpactHistoryModalProps> = ({
       <div 
         className="bg-white rounded-t-[1.25rem] sm:rounded-[1.25rem] w-full max-w-md shadow-elevated animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={swipe.onTouchStart}
+        onTouchMove={swipe.onTouchMove}
+        onTouchEnd={swipe.onTouchEnd}
+        style={swipe.style}
       >
         <div className="drag-handle sm:hidden" />
         {/* Header */}

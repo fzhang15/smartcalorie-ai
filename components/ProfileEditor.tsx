@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Check, User } from 'lucide-react';
 import { UserProfile, Gender, WeightUnit, WaterUnit } from '../types';
 import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg, mlToOz, ozToMl, DEFAULT_WATER_GOAL_ML, formatWaterAmount } from '../constants';
+import { useSwipeToClose } from '../hooks/useSwipeToClose';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -10,6 +11,7 @@ interface ProfileEditorProps {
 }
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose }) => {
+  const swipe = useSwipeToClose(onClose);
   const [gender, setGender] = useState<Gender>(profile.gender);
   const [age, setAge] = useState<number>(profile.age);
   const [height, setHeight] = useState<number>(profile.height);
@@ -73,7 +75,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4 sm:pb-4 modal-backdrop">
-      <div className="bg-white w-full max-w-lg rounded-t-[1.25rem] sm:rounded-[1.25rem] shadow-elevated overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0">
+      <div className="bg-white w-full max-w-lg rounded-t-[1.25rem] sm:rounded-[1.25rem] shadow-elevated overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0"
+        onTouchStart={swipe.onTouchStart} onTouchMove={swipe.onTouchMove} onTouchEnd={swipe.onTouchEnd} style={swipe.style}>
         <div className="drag-handle sm:hidden" />
         {/* Header */}
         <div className="px-5 pb-4 pt-2 sm:pt-4 sm:px-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
