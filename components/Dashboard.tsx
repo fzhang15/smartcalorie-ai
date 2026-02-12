@@ -162,7 +162,8 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
             <div className="flex flex-col items-center">
               <CalorieGauge netCalories={nc} bmr={effectiveBmr} eaten={tci} burned={tcb}/>
             </div>
-            <div className={`mt-3 pt-3 border-t border-white/10 grid ${profile.waterTrackingEnabled?'grid-cols-4':'grid-cols-3'} gap-2`}>
+            <p className="text-center text-[11px] text-gray-500 font-medium mt-1 mb-1">🔥 Est. BMR: {effectiveBmr.toLocaleString()} kcal/day</p>
+            <div className={`mt-2 pt-3 border-t border-white/10 grid ${profile.waterTrackingEnabled?'grid-cols-4':'grid-cols-3'} gap-2`}>
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-11 h-11 relative flex items-center justify-center">
                   <svg width="44" height="44" className="absolute inset-0 transform -rotate-90">
