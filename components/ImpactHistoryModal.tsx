@@ -368,7 +368,7 @@ const ImpactHistoryModal: React.FC<ImpactHistoryModalProps> = ({
                     tickFormatter={(value) => value.toFixed(1)}
                     domain={yAxisDomain}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} trigger="click" />
                   <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="3 3" />
                   <Line
                     type="monotone"
