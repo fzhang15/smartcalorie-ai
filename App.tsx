@@ -503,8 +503,8 @@ const App: React.FC = () => {
       if (Math.abs(bmrCorrectionRatio - 1) > 0.05) {
         // Clamp to reasonable range (0.5 to 1.5)
         const clampedFactor = Math.max(0.5, Math.min(1.5, thisMeasurementFactor));
-        // Exponential smoothing: 50% old, 50% new
-        newCalibrationFactor = 0.5 * newCalibrationFactor + 0.5 * clampedFactor;
+        // Exponential smoothing: 70% old, 30% new (higher weight on history to reduce noise)
+        newCalibrationFactor = 0.7 * newCalibrationFactor + 0.3 * clampedFactor;
       }
       // If correction <= 5%, keep current calibration factor (prediction was accurate enough)
     }

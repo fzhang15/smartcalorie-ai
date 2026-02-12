@@ -44,6 +44,7 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
   - Adjusts "Effective BMR" to match your real metabolism
   - Historical impact records corrected to reflect actual changes
   - Exponential smoothing (70% old, 30% new) for stable learning
+  - See [BMR Calibration Math](#-bmr-calibration--compensation-math) below for details
 
 ### 📈 Impact History & Trends
 - Tap "Daily Impact" card to view historical weight trends
@@ -178,6 +179,149 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 ### Daily Impact Record
 - Date (YYYY-MM-DD format)
 - Weight impact in kg (can be positive or negative)
+
+## 🧮 BMR Calibration & Compensation Math
+
+The app learns your real metabolism over time by comparing predicted vs actual weight changes. Here's how it works:
+
+### Step 1: Base BMR (Mifflin-St Jeor Equation)
+
+```
+Male:   BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age + 5
+Female: BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age − 161
+```
+
+### Step 2: Effective BMR
+
+The Mifflin-St Jeor equation is a population average — your actual metabolism may differ. The app applies a learned `calibrationFactor` (default 1.0):
+
+```
+Effective BMR = BMR × calibrationFactor
+```
+
+All calorie burn calculations use `Effective BMR` instead of raw `BMR`.
+
+### Step 3: Daily Weight Impact
+
+Each day's weight impact is calculated from net calories:
+
+```
+netCalories = caloriesEaten − effectiveBmrBurned − exerciseCalories
+dailyImpact = netCalories / 7700    (kg)
+```
+
+> **7,700 kcal ≈ 1 kg of body fat** is the energy density constant used for weight ↔ calorie conversion.
+
+For today (partial day), BMR burn is proportional to time elapsed:
+
+```
+bmrBurnedSoFar = effectiveBmr × (hoursElapsed / 24)
+```
+
+### Step 4: Weight Prediction
+
+Predicted weight accumulates daily impacts since the last manual weight update:
+
+```
+predictedWeight = lastRecordedWeight + Σ(dailyImpact)
+```
+
+Days with no logged meals/exercise are skipped (assumed net zero — the user simply forgot to log).
+
+### Step 5: Calibration on Weight Update
+
+When the user manually updates their weight (e.g., stepping on a scale), the app compares prediction vs reality:
+
+```
+actualChange    = newWeight − previousWeight
+predictedChange = Σ(dailyImpact)  over the period
+predictionError = predictedChange − actualChange
+```
+
+**Interpreting the error:**
+- `predictionError > 0` → We overpredicted weight gain → real BMR is **higher** than estimated → factor should **increase**
+- `predictionError < 0` → We underpredicted weight gain → real BMR is **lower** than estimated → factor should **decrease**
+
+**BMR correction ratio:**
+
+```
+bmrCorrectionRatio = 1 + (predictionError × 7700) / totalBmrBurned
+thisMeasurementFactor = oldFactor × bmrCorrectionRatio
+```
+
+Where `totalBmrBurned` is the sum of effective BMR burned across all logged days in the period.
+
+**Three safety guards prevent wild swings:**
+
+1. **Noise filter (5% threshold):** If `|bmrCorrectionRatio − 1| ≤ 0.05`, skip calibration entirely. Small errors are likely measurement noise (water weight, scale variance), not metabolism changes.
+
+2. **Clamping [0.5, 1.5]:** The factor is clamped so effective BMR never deviates more than ±50% from the Mifflin-St Jeor baseline.
+
+3. **Exponential smoothing (70/30):** The new factor blends with history to dampen outliers:
+   ```
+   newFactor = 0.7 × oldFactor + 0.3 × clampedFactor
+   ```
+   The 70% weight on the old value means a single bad measurement can only shift the factor by 30% of the implied correction.
+
+### Step 6: Historical Impact Correction
+
+After calibration, the app retroactively corrects the impact history for the period between weight updates. The prediction error is distributed evenly across all logged days:
+
+```
+correctionPerDay = predictionError / numberOfLoggedDays
+correctedImpact[day] = originalImpact[day] − correctionPerDay
+```
+
+This ensures the impact history chart reflects what actually happened (based on the scale reading), not just what was predicted.
+
+### Worked Example
+
+> **Setup:** Male, 80 kg, 175 cm, 30 years old. `calibrationFactor = 1.0`.
+>
+> ```
+> BMR = 10(80) + 6.25(175) − 5(30) + 5 = 800 + 1093.75 − 150 + 5 = 1749 kcal
+> Effective BMR = 1749 × 1.0 = 1749 kcal
+> ```
+>
+> **Over 7 days**, the user eats 1600 kcal/day, burns 100 kcal/day exercise:
+>
+> ```
+> Daily net = 1600 − 1749 − 100 = −249 kcal
+> Daily impact = −249 / 7700 = −0.0323 kg/day
+> Predicted change = 7 × (−0.0323) = −0.226 kg
+> Predicted weight = 80 − 0.226 = 79.774 kg
+> Total BMR burned = 7 × 1749 = 12,243 kcal
+> ```
+>
+> **User steps on scale:** actual weight = 79.5 kg
+>
+> ```
+> actualChange    = 79.5 − 80 = −0.500 kg
+> predictedChange = −0.226 kg
+> predictionError = −0.226 − (−0.500) = +0.274 kg  (overpredicted weight gain)
+> ```
+>
+> The user lost more weight than predicted → real BMR is higher than 1749.
+>
+> ```
+> bmrCorrectionRatio = 1 + (0.274 × 7700) / 12243 = 1 + 0.1723 = 1.172
+> thisMeasurementFactor = 1.0 × 1.172 = 1.172
+> ```
+>
+> Passes 5% threshold (17.2% > 5%) ✓. Within [0.5, 1.5] range ✓.
+>
+> ```
+> newFactor = 0.7 × 1.0 + 0.3 × 1.172 = 0.700 + 0.352 = 1.052
+> New Effective BMR = 1749 × 1.052 = 1840 kcal
+> ```
+>
+> **Historical correction:**
+> ```
+> correctionPerDay = 0.274 / 7 = 0.0391 kg
+> Each day's impact reduced by 0.0391 kg
+> New daily impact = −0.0323 − 0.0391 = −0.0714 kg/day
+> Sum = 7 × (−0.0714) = −0.500 kg  ✓ (matches actual change)
+> ```
 
 ## Deployment
 
