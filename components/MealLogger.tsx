@@ -266,7 +266,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-6">
+        <div ref={swipe.scrollContainerRef} className="overflow-y-auto p-4 space-y-6">
           {isCameraOpen ? (
             <div className="space-y-4">
                 <div className="relative rounded-xl overflow-hidden bg-black aspect-square flex items-center justify-center">

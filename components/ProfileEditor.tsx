@@ -89,7 +89,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-6">
+        <div ref={swipe.scrollContainerRef} className="overflow-y-auto p-4 space-y-6">
           {/* Name (read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>

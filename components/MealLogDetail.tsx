@@ -49,7 +49,7 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-4">
+        <div ref={swipe.scrollContainerRef} className="overflow-y-auto p-4 space-y-4">
           {/* Image or Description */}
           {log.imageUrl ? (
             <div

@@ -58,7 +58,7 @@ const [customAmount, setCustomAmount] = useState<string>('');
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-6">
+        <div ref={swipe.scrollContainerRef} className="overflow-y-auto p-4 space-y-6">
           {/* Progress */}
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
             <div className="flex justify-between items-center mb-2">

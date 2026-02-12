@@ -44,7 +44,7 @@ const ExerciseLogger: React.FC<ExerciseLoggerProps> = ({ onLogExercise, onClose 
           </button>
         </div>
 
-        <div className="overflow-y-auto p-4 space-y-6">
+        <div ref={swipe.scrollContainerRef} className="overflow-y-auto p-4 space-y-6">
           {/* Exercise Type Selection */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">Exercise Type</label>
