@@ -1,6 +1,6 @@
 # SmartCalorie AI 🍽️
 
-A smart calorie tracking app powered by Google Gemini AI. Take a photo of your food and get instant nutritional analysis.
+A smart calorie tracking app powered by Google Gemini AI. Take a photo of your food or describe your meal and get instant nutritional analysis with adaptive weight prediction.
 
 ## Features
 
@@ -8,17 +8,27 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Take a photo of your meal and let Gemini AI analyze it
 - **Text-based meal input** — describe what you ate (e.g., "12 beef dumplings and a bowl of egg drop soup") and get AI-estimated nutrition
 - Automatic detection of food items with calorie and macro estimates
+- **Editable AI results** — after analysis, manually adjust food item names, calories, protein, carbs, and fat before saving
+- **No food detected handling** — when AI doesn't find food in an image, offers options to try a different photo or describe the meal via text
 - Supports breakfast, lunch, dinner, and snacks
+- **Auto meal type detection** — meal type pre-selects based on time of day (breakfast 8–10am, lunch 11:30am–1:30pm, dinner 5–7pm, snack otherwise)
 - Nutritional values rounded to whole numbers for clean display
 - **Automatic image compression** — photos resized to 1024×1024 max and compressed to JPEG 0.7 for reliable uploads
 - **Retry with backoff** — transient API errors (rate limits, network issues, server errors) automatically retried up to 2 times
 - **Descriptive error messages** — users see specific error reasons (rate limit, network, image too large, etc.) instead of generic failures
 
+### 🍽️ Meal Portion & Sharing
+- **Diners selector** — choose 1P, 2P, 3P, 4P to automatically split calories when sharing a meal
+- **Custom portion slider** — set any portion from 10% to 100% for flexible splitting
+- Calories, protein, carbs, and fat all adjusted proportionally
+- Per-item and total calorie preview shows adjusted values before saving
+
 ### 🏃 Exercise Tracking
 - Log workouts with various exercise types:
   - Walking, Running, Cycling
   - Elliptical, Swimming, Strength Training
-- Input duration in minutes
+  - Aerobics, Plank
+- Input duration in minutes (slider + manual input)
 - Automatic calorie burn calculation based on exercise type
 - Exercise calories added to daily burn total
 
@@ -30,6 +40,7 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Water log section with timestamps and delete support
 - Dedicated 💧 Water FAB button (appears when enabled)
 - Daily goal configurable (default 2,500ml)
+- Goal reached celebration indicator 🎉
 - **No impact on calorie calculations** — purely a hydration tracker
 
 ### ⚖️ Smart Weight Prediction with Calibration
@@ -59,12 +70,20 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Today's live value calculated in real-time
 - Summary statistics: total and average impact
 
+### 📊 Calorie Gauge
+- Semi-circular speedometer-style gauge showing net calorie deficit/surplus
+- Animated needle that sweeps from deficit (green, left) to surplus (red, right)
+- Range dynamically set to ±50% of your BMR
+- Glow effects and tapered needle for polished appearance
+- Deficit/surplus labels and tick marks for orientation
+
 ### ✏️ Profile Editing
 - Tap on avatar/name to edit profile settings
-- Editable fields: Gender, Age, Height, Weight
+- Editable fields: Gender, Age, Height, Weight, Daily Exercise Goal
 - Name is read-only after registration
 - Real-time BMR preview when editing
-- **Weight unit toggle (kg/lbs)** - converts automatically
+- **Weight unit toggle (kg/lbs)** — converts automatically
+- Water tracking toggle with configurable goal and unit
 
 ### 🎂 Automatic Age Increment
 - Age automatically increases by 1 year on January 1st
@@ -73,19 +92,21 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 
 ### ⏱️ Time-Based BMR Tracking
 - Real-time BMR burn calculation proportional to time of day
+- **Registration day adjustment** — on the day a profile is created, BMR burn only counts from the creation time (not the full 24h)
 - Shows net calories (eaten - BMR - exercise) for accurate tracking
-- Visual progress bars for intake, BMR burn, and exercise burn
+- Visual progress rings for intake, BMR burn, exercise burn, and water (when enabled)
 - Daily target based on BMR (exercise tracked separately)
 
 ### 📅 Date Navigation
 - View meal and exercise history by date
 - Navigate between days with arrow controls
-- **Calendar picker popup** - tap the date to open a full calendar view
+- **Calendar picker popup** — tap the date to open a full calendar view
   - Month/year navigation
   - Touch-friendly large date buttons (44px touch targets)
   - Visual highlighting of selected date and today
   - **Green dot indicators** for dates with logged meals or exercises
   - Future dates disabled
+  - Pre-data dates disabled (can't navigate before earliest log or registration)
   - "Go to Today" quick action
   - Click outside to dismiss
 - Quick "Today" button to return to current date
@@ -97,13 +118,17 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 
 ### 🗑️ Meal & Exercise Management
 - Delete any logged meal or exercise with a single tap
-- View detailed nutritional breakdown (protein, carbs, fat)
+- View detailed nutritional breakdown (protein, carbs, fat) in meal detail modal
 - Photo thumbnails for visual meal reference
+- **Full-screen image preview** — tap a meal photo to view it full-screen with dark overlay
 
-### 👤 Single-User Optimized
-- Automatic login for single-user devices
-- No user selection screen when only one profile exists
+### 👤 Multi-User Support
+- **User selector screen** — choose profile when multiple users exist
+- **Add new profiles** from the user selector
+- **Automatic login** for single-user devices (skips selection screen)
 - Quick profile deletion with cache cleanup
+- Per-user data isolation in LocalStorage
+- **Legacy data migration** — single-user data from older versions automatically migrated
 
 ### 📊 Nutritional Insights
 - Track protein, carbs, and fat intake with macro pie chart
@@ -111,15 +136,25 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - BMR calculation using Mifflin-St Jeor equation
 - Clean, mobile-first dashboard design
 
+### 📱 Mobile-First Design & PWA
+- **Installable PWA** — add to home screen on iOS and Android for native app experience
+- Bottom sheet modals with **drag handles** and **swipe-down-to-dismiss** gesture
+- **Body scroll locking** when modals are open to prevent background scrolling
+- iOS safe area support (notch padding)
+- Responsive layout — optimized for mobile, centered card on desktop
+- Custom Inter font with antialiased rendering
+- Smooth animations (fade-in, slide-in, zoom) for all transitions
+
 ## Tech Stack
 
-- **Frontend:** React + TypeScript
-- **Styling:** Tailwind CSS
-- **AI:** Google Gemini API (gemini-3-flash-preview)
-- **Build Tool:** Vite
+- **Frontend:** React 18 + TypeScript
+- **Styling:** Tailwind CSS (CDN)
+- **AI:** Google Gemini API (`gemini-3-flash-preview`)
+- **Build Tool:** Vite 6
 - **Charts:** Recharts
 - **Icons:** Lucide React
 - **Storage:** LocalStorage (per-user data persistence)
+- **PWA:** Web App Manifest + Apple meta tags
 
 ## Run Locally
 
@@ -156,6 +191,7 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - BMR (Basal Metabolic Rate)
 - Calibration Factor (learned metabolism adjustment)
 - Calibration Base Weight (weight at last calibration point, only updated when dayGap ≥ 1)
+- Created At (timestamp when profile was first created, never changes)
 - Last weight update timestamp for prediction
 - Age last updated year (for auto-increment)
 - Daily exercise goal
@@ -361,6 +397,40 @@ This ensures the impact history chart reflects what actually happened (based on 
 > New daily impact = −0.0323 − 0.0391 = −0.0714 kg/day
 > Sum = 7 × (−0.0714) = −0.500 kg  ✓ (matches actual change)
 > ```
+
+## Project Structure
+
+```
+smartcalorie-ai/
+├── index.html              # Entry HTML with Tailwind config & PWA meta tags
+├── index.tsx               # React root mount
+├── App.tsx                 # Main app: routing, state management, data persistence
+├── types.ts                # TypeScript interfaces & enums
+├── constants.ts            # Exercise/water/weight constants & conversions
+├── vite.config.ts          # Vite build config with Gemini API key injection
+├── components/
+│   ├── Onboarding.tsx      # 2-step profile creation wizard
+│   ├── UserSelector.tsx    # Multi-user profile picker
+│   ├── Dashboard.tsx       # Main dashboard with stats, meals, exercises, water
+│   ├── CalorieGauge.tsx    # SVG semi-circular net calorie gauge
+│   ├── MealLogger.tsx      # Camera/upload/text meal input with AI analysis
+│   ├── MealLogDetail.tsx   # Meal detail bottom sheet with delete
+│   ├── ExerciseLogger.tsx  # Exercise type & duration logger
+│   ├── WaterTracker.tsx    # Water intake quick-add & custom input
+│   ├── WeightInput.tsx     # Weight update modal with unit conversion
+│   ├── ProfileEditor.tsx   # Profile settings editor
+│   └── ImpactHistoryModal.tsx  # Daily/weekly/monthly weight trend charts
+├── hooks/
+│   └── useSwipeToClose.ts  # Swipe-down gesture hook with scroll locking
+├── services/
+│   └── geminiService.ts    # Gemini AI integration (image & text analysis)
+├── public/
+│   ├── manifest.json       # PWA web app manifest
+│   ├── icon.png            # App icon (512×512)
+│   └── apple-touch-icon.png # iOS home screen icon
+└── assets/
+    └── icon.png            # Source icon asset
+```
 
 ## Deployment
 
