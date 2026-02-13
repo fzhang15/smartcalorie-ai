@@ -3,6 +3,19 @@ import { UserProfile, Gender, ActivityLevel, WeightUnit } from '../types';
 import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg } from '../constants';
 import { User, Ruler, ArrowRight, ChevronLeft } from 'lucide-react';
 
+const VALIDATION = {
+  age: { min: 1, max: 120 },
+  height: { min: 50, max: 300 },
+  weight: { kg: { min: 10, max: 500 }, lbs: { min: 22, max: 1102 } },
+};
+
+const isAgeValid = (v: number) => v >= VALIDATION.age.min && v <= VALIDATION.age.max;
+const isHeightValid = (v: number) => v >= VALIDATION.height.min && v <= VALIDATION.height.max;
+const isWeightValid = (v: number, unit: WeightUnit) => {
+  const bounds = VALIDATION.weight[unit];
+  return v >= bounds.min && v <= bounds.max;
+};
+
 interface OnboardingProps {
   onComplete: (profile: Omit<UserProfile, 'id' | 'avatarColor'>) => void;
   onCancel?: () => void;
@@ -129,11 +142,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
               <input
                 type="number"
                 inputMode="numeric"
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow"
+                min={VALIDATION.age.min}
+                max={VALIDATION.age.max}
+                className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow ${formData.age && !isAgeValid(formData.age) ? 'border-red-400' : 'border-gray-200'}`}
                 placeholder="Years"
                 value={formData.age || ''}
                 onChange={(e) => handleChange('age', parseInt(e.target.value) || 0)}
               />
+              {formData.age !== undefined && formData.age > 0 && !isAgeValid(formData.age) && (
+                <p className="text-xs text-red-500 mt-1">Age must be between {VALIDATION.age.min} and {VALIDATION.age.max}</p>
+              )}
             </div>
           </div>
         )}
@@ -146,11 +164,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
               <input
                 type="number"
                 inputMode="decimal"
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow"
+                min={VALIDATION.height.min}
+                max={VALIDATION.height.max}
+                className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow ${formData.height && !isHeightValid(formData.height) ? 'border-red-400' : 'border-gray-200'}`}
                 placeholder="175"
                 value={formData.height || ''}
                 onChange={(e) => handleChange('height', parseInt(e.target.value) || 0)}
               />
+              {formData.height !== undefined && formData.height > 0 && !isHeightValid(formData.height) && (
+                <p className="text-xs text-red-500 mt-1">Height must be between {VALIDATION.height.min} and {VALIDATION.height.max} cm</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Current Weight</label>
@@ -185,11 +208,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                   type="number"
                   inputMode="decimal"
                   step="0.1"
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow"
+                  min={VALIDATION.weight[formData.weightUnit || 'kg'].min}
+                  max={VALIDATION.weight[formData.weightUnit || 'kg'].max}
+                  className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow ${weightInput > 0 && !isWeightValid(weightInput, formData.weightUnit || 'kg') ? 'border-red-400' : 'border-gray-200'}`}
                   placeholder={formData.weightUnit === 'lbs' ? 'e.g. 154' : 'e.g. 70'}
                   value={weightInput || ''}
                   onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
                 />
+                {weightInput > 0 && !isWeightValid(weightInput, formData.weightUnit || 'kg') && (
+                  <p className="text-xs text-red-500 mt-1">Weight must be between {VALIDATION.weight[formData.weightUnit || 'kg'].min} and {VALIDATION.weight[formData.weightUnit || 'kg'].max} {formData.weightUnit || 'kg'}</p>
+                )}
               </div>
             </div>
           </div>
@@ -198,8 +226,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
         <button
           onClick={handleNext}
           disabled={
-            (step === 1 && (!formData.name || !formData.age)) ||
-            (step === 2 && (!formData.height || !weightInput))
+            (step === 1 && (!formData.name || !formData.age || !isAgeValid(formData.age))) ||
+            (step === 2 && (!formData.height || !isHeightValid(formData.height) || !weightInput || !isWeightValid(weightInput, formData.weightUnit || 'kg')))
           }
           className="w-full mt-8 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
         >

@@ -4,6 +4,19 @@ import { UserProfile, Gender, WeightUnit, WaterUnit } from '../types';
 import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg, mlToOz, ozToMl, DEFAULT_WATER_GOAL_ML, formatWaterAmount } from '../constants';
 import { useSwipeToClose } from '../hooks/useSwipeToClose';
 
+const VALIDATION = {
+  age: { min: 1, max: 120 },
+  height: { min: 50, max: 300 },
+  weight: { kg: { min: 10, max: 500 }, lbs: { min: 22, max: 1102 } },
+};
+
+const isAgeValid = (v: number) => v >= VALIDATION.age.min && v <= VALIDATION.age.max;
+const isHeightValid = (v: number) => v >= VALIDATION.height.min && v <= VALIDATION.height.max;
+const isWeightValid = (v: number, unit: WeightUnit) => {
+  const bounds = VALIDATION.weight[unit];
+  return v >= bounds.min && v <= bounds.max;
+};
+
 interface ProfileEditorProps {
   profile: UserProfile;
   onSave: (updatedProfile: Partial<UserProfile>) => void;
@@ -125,13 +138,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
             <input
               type="number"
               inputMode="numeric"
-              min="1"
-              max="120"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+              min={VALIDATION.age.min}
+              max={VALIDATION.age.max}
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none ${age > 0 && !isAgeValid(age) ? 'border-red-400' : 'border-gray-300'}`}
               value={age}
               onChange={(e) => setAge(parseInt(e.target.value) || 0)}
             />
-            <p className="text-xs text-gray-400 mt-1">Age automatically increases on January 1st each year</p>
+            {age > 0 && !isAgeValid(age) ? (
+              <p className="text-xs text-red-500 mt-1">Age must be between {VALIDATION.age.min} and {VALIDATION.age.max}</p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">Age automatically increases on January 1st each year</p>
+            )}
           </div>
 
           {/* Height */}
@@ -140,12 +157,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
             <input
               type="number"
               inputMode="decimal"
-              min="50"
-              max="250"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+              min={VALIDATION.height.min}
+              max={VALIDATION.height.max}
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none ${height > 0 && !isHeightValid(height) ? 'border-red-400' : 'border-gray-300'}`}
               value={height}
               onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
             />
+            {height > 0 && !isHeightValid(height) && (
+              <p className="text-xs text-red-500 mt-1">Height must be between {VALIDATION.height.min} and {VALIDATION.height.max} cm</p>
+            )}
           </div>
 
           {/* Weight with Unit Toggle */}
@@ -156,8 +176,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
                 type="number"
                 inputMode="decimal"
                 step="0.1"
-                min="1"
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                min={VALIDATION.weight[weightUnit].min}
+                max={VALIDATION.weight[weightUnit].max}
+                className={`flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none ${weightInput > 0 && !isWeightValid(weightInput, weightUnit) ? 'border-red-400' : 'border-gray-300'}`}
                 value={weightInput}
                 onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
               />
@@ -194,6 +215,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
                 </button>
               </div>
             </div>
+            {weightInput > 0 && !isWeightValid(weightInput, weightUnit) && (
+              <p className="text-xs text-red-500 mt-1">Weight must be between {VALIDATION.weight[weightUnit].min} and {VALIDATION.weight[weightUnit].max} {weightUnit}</p>
+            )}
           </div>
 
           {/* Daily Exercise Goal */}
@@ -299,7 +323,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
           {/* Save Button */}
           <button
             onClick={handleSave}
-            disabled={!age || !height || !weightInput}
+            disabled={!age || !isAgeValid(age) || !height || !isHeightValid(height) || !weightInput || !isWeightValid(weightInput, weightUnit)}
             className="w-full bg-brand-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-brand-700 transition-colors disabled:opacity-50"
           >
             <Check size={20} /> Save Changes
