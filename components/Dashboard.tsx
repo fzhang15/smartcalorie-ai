@@ -69,6 +69,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
     const e=new Date(Math.min(...d));e.setHours(0,0,0,0);return e;
   }, [logs, exerciseLogs, profile.createdAt]);
 
+  const isWithinFirstTwoWeeks = profile.createdAt ? (Date.now() - profile.createdAt) < 14 * 24 * 60 * 60 * 1000 : false;
   const isBeforeEarliest = (d: Date) => { if(!earliestDataDate)return false;const c=new Date(d);c.setHours(0,0,0,0);return c<earliestDataDate; };
   const isAtEarliest = () => earliestDataDate ? isSameDay(viewDate, earliestDataDate) : false;
   const hasLogsOn = (d: Date) => { const s=new Date(d);s.setHours(0,0,0,0);const e=new Date(d);e.setHours(23,59,59,999); return logs.some(l=>l.timestamp>=s.getTime()&&l.timestamp<=e.getTime())||exerciseLogs.some(l=>l.timestamp>=s.getTime()&&l.timestamp<=e.getTime()); };
@@ -137,7 +138,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
             <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg ${profile.avatarColor||'bg-brand-500'}`}>{profile.name.charAt(0).toUpperCase()}</div>
             <div className="text-left">
               <h1 className="text-xl font-bold text-gray-900 tracking-tight">{profile.name}</h1>
-              <p className="text-[11px] text-gray-400 font-medium">Tap to edit profile</p>
+              {isWithinFirstTwoWeeks && <p className="text-[11px] text-gray-400 font-medium">Tap to edit profile</p>}
             </div>
           </button>
           <button onClick={onReset} className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Delete Profile"><Trash2 size={18}/></button>
@@ -232,7 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
           <p className="text-[11px] text-gray-400 font-medium">Daily Impact</p>
           <p className="text-lg font-bold text-gray-900 tracking-tight">{pwc>0?'+':''}{profile.weightUnit==='lbs'?kgToLbs(pwc).toFixed(3):pwc.toFixed(3)} <span className="text-xs font-normal text-gray-400">{profile.weightUnit||'kg'}</span></p>
           <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity"><BarChart3 size={12} className="text-gray-300"/></div>
-          <p className="text-[10px] text-brand-500 font-medium mt-1">Tap for history</p>
+          {isWithinFirstTwoWeeks && <p className="text-[10px] text-brand-500 font-medium mt-1">Tap for history</p>}
         </button>
         <button onClick={()=>onUpdateWeight(pw)} className="bg-white p-4 rounded-2xl shadow-card hover:shadow-card-hover flex flex-col items-center text-center active:scale-[0.97] transition-all">
           <div className="p-2.5 rounded-xl mb-2 bg-accent-50 text-accent-500"><Scale size={18}/></div>
