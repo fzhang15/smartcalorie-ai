@@ -142,6 +142,38 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
             </div>
           ) : null}
 
+          {/* Health Score (read-only, shown when available) */}
+          {!isEditing && log.healthScore != null && log.healthScore > 0 && (
+            <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+              log.healthScore >= 8 ? 'bg-green-50 border-green-200' :
+              log.healthScore >= 5 ? 'bg-yellow-50 border-yellow-200' :
+              'bg-red-50 border-red-200'
+            }`}>
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm ${
+                log.healthScore >= 8 ? 'bg-green-500' :
+                log.healthScore >= 5 ? 'bg-yellow-500' :
+                'bg-red-500'
+              }`}>
+                {log.healthScore}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs font-semibold ${
+                    log.healthScore >= 8 ? 'text-green-700' :
+                    log.healthScore >= 5 ? 'text-yellow-700' :
+                    'text-red-700'
+                  }`}>
+                    Health Score: {log.healthScore}/10
+                  </span>
+                  <span>{log.healthScore >= 8 ? '🟢' : log.healthScore >= 5 ? '🟡' : '🔴'}</span>
+                </div>
+                {log.healthNote && (
+                  <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{log.healthNote}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Meal Type Selector (edit mode only) */}
           {isEditing && (
             <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">

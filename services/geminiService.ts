@@ -1,23 +1,38 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { FoodItem } from "../types";
 
+export interface AnalysisResult {
+  items: FoodItem[];
+  healthScore: number; // 1-10
+  healthNote: string; // One-sentence health judgement
+}
+
 // Using gemini-3-flash-preview as it is multimodal and highly capable of analyzing images + JSON schema output
 const MODEL_NAME = "gemini-3-flash-preview";
 
 const FOOD_ITEM_SCHEMA = {
-  type: Type.ARRAY,
-  description: "List of identified food items with nutritional info",
-  items: {
-    type: Type.OBJECT,
-    properties: {
-      name: { type: Type.STRING, description: "Name of the food item" },
-      calories: { type: Type.NUMBER, description: "Estimated calories" },
-      protein: { type: Type.NUMBER, description: "Estimated protein in grams" },
-      carbs: { type: Type.NUMBER, description: "Estimated carbohydrates in grams" },
-      fat: { type: Type.NUMBER, description: "Estimated fat in grams" },
+  type: Type.OBJECT,
+  description: "Analysis result with food items and health assessment",
+  properties: {
+    items: {
+      type: Type.ARRAY,
+      description: "List of identified food items with nutritional info",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING, description: "Name of the food item" },
+          calories: { type: Type.NUMBER, description: "Estimated calories" },
+          protein: { type: Type.NUMBER, description: "Estimated protein in grams" },
+          carbs: { type: Type.NUMBER, description: "Estimated carbohydrates in grams" },
+          fat: { type: Type.NUMBER, description: "Estimated fat in grams" },
+        },
+        required: ["name", "calories", "protein", "carbs", "fat"],
+      },
     },
-    required: ["name", "calories", "protein", "carbs", "fat"],
+    healthScore: { type: Type.NUMBER, description: "Health score from 1 (very unhealthy) to 10 (very healthy) for the overall meal" },
+    healthNote: { type: Type.STRING, description: "One short sentence judging the healthiness of the meal" },
   },
+  required: ["items", "healthScore", "healthNote"],
 } as const;
 
 const roundFoodItems = (items: FoodItem[]): FoodItem[] =>
@@ -92,7 +107,9 @@ const withRetry = async <T>(fn: () => Promise<T>): Promise<T> => {
   throw enrichedError;
 };
 
-export const analyzeFoodImage = async (base64Image: string): Promise<FoodItem[]> => {
+const EMPTY_RESULT: AnalysisResult = { items: [], healthScore: 0, healthNote: '' };
+
+export const analyzeFoodImage = async (base64Image: string): Promise<AnalysisResult> => {
   return withRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -109,7 +126,7 @@ export const analyzeFoodImage = async (base64Image: string): Promise<FoodItem[]>
             },
           },
           {
-            text: "Analyze this image. If the image does not contain any food or drinks, return an empty array []. Otherwise, identify the distinct food items present. For each item, estimate the calories, protein (g), carbs (g), and fat (g). Be realistic with portion sizes based on visual cues.",
+            text: "Analyze this image. If the image does not contain any food or drinks, return an empty items array with healthScore 0 and empty healthNote. Otherwise, identify the distinct food items present. For each item, estimate the calories, protein (g), carbs (g), and fat (g). Be realistic with portion sizes based on visual cues. Also provide a healthScore from 1 (very unhealthy) to 10 (very healthy) and a healthNote with one short sentence judging the healthiness of the overall meal.",
           },
         ],
       },
@@ -120,13 +137,18 @@ export const analyzeFoodImage = async (base64Image: string): Promise<FoodItem[]>
     });
 
     const text = response.text;
-    if (!text) return [];
+    if (!text) return EMPTY_RESULT;
 
-    return roundFoodItems(JSON.parse(text) as FoodItem[]);
+    const parsed = JSON.parse(text) as AnalysisResult;
+    return {
+      items: roundFoodItems(parsed.items || []),
+      healthScore: Math.round(Math.min(10, Math.max(0, parsed.healthScore || 0))),
+      healthNote: parsed.healthNote || '',
+    };
   });
 };
 
-export const analyzeFoodDescription = async (description: string): Promise<FoodItem[]> => {
+export const analyzeFoodDescription = async (description: string): Promise<AnalysisResult> => {
   return withRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -135,7 +157,7 @@ export const analyzeFoodDescription = async (description: string): Promise<FoodI
       contents: {
         parts: [
           {
-            text: `A user described their meal as follows: "${description}". Based on this description, identify the distinct food items. For each item, estimate the calories, protein (g), carbs (g), and fat (g). Be realistic with portion sizes based on the description (e.g. quantities, sizes mentioned). If a quantity is specified (like "12 dumplings"), calculate the total nutrition for that quantity.`,
+            text: `A user described their meal as follows: "${description}". Based on this description, identify the distinct food items. For each item, estimate the calories, protein (g), carbs (g), and fat (g). Be realistic with portion sizes based on the description (e.g. quantities, sizes mentioned). If a quantity is specified (like "12 dumplings"), calculate the total nutrition for that quantity. Also provide a healthScore from 1 (very unhealthy) to 10 (very healthy) and a healthNote with one short sentence judging the healthiness of the overall meal.`,
           },
         ],
       },
@@ -146,8 +168,13 @@ export const analyzeFoodDescription = async (description: string): Promise<FoodI
     });
 
     const text = response.text;
-    if (!text) return [];
+    if (!text) return EMPTY_RESULT;
 
-    return roundFoodItems(JSON.parse(text) as FoodItem[]);
+    const parsed = JSON.parse(text) as AnalysisResult;
+    return {
+      items: roundFoodItems(parsed.items || []),
+      healthScore: Math.round(Math.min(10, Math.max(0, parsed.healthScore || 0))),
+      healthNote: parsed.healthNote || '',
+    };
   });
 };

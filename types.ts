@@ -55,7 +55,9 @@ export interface MealLog {
   items: FoodItem[];
   totalCalories: number;
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  portionRatio?: number; // 0-1 之间，表示个人份额比例（如2人用餐则为0.5）
+  portionRatio?: number; // 0-1 range, represents personal portion ratio (e.g. 0.5 for a 2-person meal)
+  healthScore?: number; // 1-10 health rating from AI analysis
+  healthNote?: string; // Short one-sentence health judgement from AI
 }
 
 export interface DailyStats {

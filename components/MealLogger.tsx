@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users, PenLine, AlertTriangle } from 'lucide-react';
-import { analyzeFoodImage, analyzeFoodDescription } from '../services/geminiService';
+import { analyzeFoodImage, analyzeFoodDescription, AnalysisResult } from '../services/geminiService';
 import { FoodItem, MealLog } from '../types';
 import { useSwipeToClose } from '../hooks/useSwipeToClose';
 import { saveImage } from '../services/imageStore';
@@ -69,6 +69,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedItems, setAnalyzedItems] = useState<FoodItem[]>([]);
+  const [healthScore, setHealthScore] = useState<number>(0);
+  const [healthNote, setHealthNote] = useState<string>('');
   const [noFoodDetected, setNoFoodDetected] = useState(false);
   const [mealType, setMealType] = useState<MealLog['mealType']>(getDefaultMealType());
   const [analyzingTipIndex, setAnalyzingTipIndex] = useState(0);
@@ -186,17 +188,23 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
     }
   };
 
+  const applyAnalysisResult = (result: AnalysisResult) => {
+    if (result.items.length === 0) {
+      setNoFoodDetected(true);
+    } else {
+      setAnalyzedItems(result.items);
+      setHealthScore(result.healthScore);
+      setHealthNote(result.healthNote);
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!image) return;
     setIsAnalyzing(true);
     setNoFoodDetected(false);
     try {
-      const items = await analyzeFoodImage(image);
-      if (items.length === 0) {
-        setNoFoodDetected(true);
-      } else {
-        setAnalyzedItems(items);
-      }
+      const result = await analyzeFoodImage(image);
+      applyAnalysisResult(result);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to analyze image. Please try again.";
       alert(msg);
@@ -210,12 +218,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
     setIsAnalyzing(true);
     setNoFoodDetected(false);
     try {
-      const items = await analyzeFoodDescription(textDescription.trim());
-      if (items.length === 0) {
-        setNoFoodDetected(true);
-      } else {
-        setAnalyzedItems(items);
-      }
+      const result = await analyzeFoodDescription(textDescription.trim());
+      applyAnalysisResult(result);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to analyze description. Please try again.";
       alert(msg);
@@ -264,6 +268,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
       totalCalories: adjustedTotalCalories,
       mealType,
       portionRatio: portionRatio,
+      healthScore: healthScore || undefined,
+      healthNote: healthNote || undefined,
     };
     onLogMeal(log);
     onClose();
@@ -536,6 +542,38 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
           {/* Results */}
           {analyzedItems.length > 0 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom duration-300">
+              {/* Health Score Badge */}
+              {healthScore > 0 && (
+                <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  healthScore >= 8 ? 'bg-green-50 border-green-200' :
+                  healthScore >= 5 ? 'bg-yellow-50 border-yellow-200' :
+                  'bg-red-50 border-red-200'
+                }`}>
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm ${
+                    healthScore >= 8 ? 'bg-green-500' :
+                    healthScore >= 5 ? 'bg-yellow-500' :
+                    'bg-red-500'
+                  }`}>
+                    {healthScore}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-xs font-semibold ${
+                        healthScore >= 8 ? 'text-green-700' :
+                        healthScore >= 5 ? 'text-yellow-700' :
+                        'text-red-700'
+                      }`}>
+                        Health Score: {healthScore}/10
+                      </span>
+                      <span>{healthScore >= 8 ? '🟢' : healthScore >= 5 ? '🟡' : '🔴'}</span>
+                    </div>
+                    {healthNote && (
+                      <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{healthNote}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
                <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
                 {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map(type => (
                   <button
