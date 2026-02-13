@@ -47,10 +47,10 @@ interface DashboardProps {
   profile: UserProfile; logs: MealLog[]; exerciseLogs: ExerciseLog[]; waterLogs: WaterLog[]; impactHistory: DailyImpactRecord[];
   onOpenLogger: () => void; onOpenExerciseLogger: () => void; onOpenWaterTracker: () => void;
   onUpdateWeight: (suggestedWeight: number) => void; onEditProfile: () => void; onReset: () => void;
-  onDeleteLog: (logId: string) => void; onDeleteExerciseLog: (logId: string) => void; onDeleteWaterLog: (logId: string) => void;
+  onDeleteLog: (logId: string) => void; onEditLog?: (logId: string, updates: Partial<MealLog>) => void; onDeleteExerciseLog: (logId: string) => void; onDeleteWaterLog: (logId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLogs,impactHistory,onOpenLogger,onOpenExerciseLogger,onOpenWaterTracker,onUpdateWeight,onEditProfile,onReset,onDeleteLog,onDeleteExerciseLog,onDeleteWaterLog}) => {
+const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLogs,impactHistory,onOpenLogger,onOpenExerciseLogger,onOpenWaterTracker,onUpdateWeight,onEditProfile,onReset,onDeleteLog,onEditLog,onDeleteExerciseLog,onDeleteWaterLog}) => {
   const [viewDate, setViewDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showImpactHistory, setShowImpactHistory] = useState(false);
@@ -343,7 +343,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
       )}
 
       {showImpactHistory&&<ImpactHistoryModal profile={profile} logs={logs} exerciseLogs={exerciseLogs} impactHistory={impactHistory} onClose={()=>setShowImpactHistory(false)}/>}
-      {selectedMealLog&&<MealLogDetail log={selectedMealLog} onClose={()=>setSelectedMealLog(null)} onDelete={onDeleteLog} onImageClick={(url)=>{setSelectedMealLog(null);setSelectedImage(url)}}/>}
+      {selectedMealLog&&<MealLogDetail log={selectedMealLog} onClose={()=>setSelectedMealLog(null)} onDelete={onDeleteLog} onEdit={onEditLog} onImageClick={(url)=>{setSelectedMealLog(null);setSelectedImage(url)}}/>}
       {selectedImage&&<FullScreenImage imageUrl={selectedImage} onClose={()=>setSelectedImage(null)}/>}
 
       {isToday(viewDate)&&(

@@ -67,6 +67,7 @@ const App: React.FC = () => {
             onEditProfile={() => setShowProfileEditor(true)}
             onReset={actions.handleResetProfile}
             onDeleteLog={actions.handleDeleteLog}
+            onEditLog={actions.handleEditMealLog}
             onDeleteExerciseLog={actions.handleDeleteExerciseLog}
             onDeleteWaterLog={actions.handleDeleteWaterLog}
           />

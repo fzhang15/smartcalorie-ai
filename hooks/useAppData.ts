@@ -25,6 +25,7 @@ export type AppView = 'loading' | 'user-select' | 'onboarding' | 'dashboard';
 export interface AppActions {
   handleProfileCreate: (data: Omit<UserProfile, 'id' | 'avatarColor'>) => void;
   handleLogMeal: (log: MealLog) => void;
+  handleEditMealLog: (logId: string, updates: Partial<MealLog>) => void;
   handleLogExercise: (log: ExerciseLog) => void;
   handleLogWater: (log: WaterLog) => void;
   handleDeleteLog: (logId: string) => void;
@@ -282,6 +283,55 @@ export function useAppData(): AppData {
     setLogs(prev => [...prev, log]);
   };
 
+  const handleEditMealLog = (logId: string, updates: Partial<MealLog>) => {
+    setLogs(prev => {
+      const updatedLogs = prev.map(log => {
+        if (log.id !== logId) return log;
+        const updated = { ...log, ...updates };
+        // Recalculate totalCalories from items if items were updated
+        if (updates.items) {
+          updated.totalCalories = updates.items.reduce((acc, item) => acc + item.calories, 0);
+        }
+        return updated;
+      });
+
+      // Recalculate impact history for the affected day if it's a past day
+      const editedLog = updatedLogs.find(l => l.id === logId);
+      if (editedLog && profile) {
+        const logDate = new Date(editedLog.timestamp);
+        const today = new Date();
+        const isToday = logDate.getDate() === today.getDate() &&
+                        logDate.getMonth() === today.getMonth() &&
+                        logDate.getFullYear() === today.getFullYear();
+
+        if (!isToday) {
+          // Past day: recalculate impact for that date
+          const dateKey = formatDateKey(logDate);
+          const dayStart = new Date(logDate);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(logDate);
+          dayEnd.setHours(23, 59, 59, 999);
+
+          const dayMealCalories = updatedLogs
+            .filter(l => l.timestamp >= dayStart.getTime() && l.timestamp <= dayEnd.getTime())
+            .reduce((acc, l) => acc + l.totalCalories, 0);
+          const dayExerciseCalories = exerciseLogs
+            .filter(l => l.timestamp >= dayStart.getTime() && l.timestamp <= dayEnd.getTime())
+            .reduce((acc, l) => acc + l.caloriesBurned, 0);
+
+          const netCalories = dayMealCalories - profile.bmr - dayExerciseCalories;
+          const newImpact = netCalories / CALORIES_PER_KG_FAT;
+
+          setImpactHistory(prev => prev.map(record =>
+            record.date === dateKey ? { ...record, impactKg: newImpact } : record
+          ));
+        }
+      }
+
+      return updatedLogs;
+    });
+  };
+
   const handleLogExercise = (log: ExerciseLog) => {
     setExerciseLogs(prev => [...prev, log]);
   };
@@ -381,6 +431,7 @@ export function useAppData(): AppData {
     actions: {
       handleProfileCreate,
       handleLogMeal,
+      handleEditMealLog,
       handleLogExercise,
       handleLogWater,
       handleDeleteLog,
