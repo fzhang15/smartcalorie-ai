@@ -3,6 +3,7 @@ import { Camera, Upload, X, Check, Loader2, Utensils, Image as ImageIcon, Users,
 import { analyzeFoodImage, analyzeFoodDescription } from '../services/geminiService';
 import { FoodItem, MealLog } from '../types';
 import { useSwipeToClose } from '../hooks/useSwipeToClose';
+import { saveImage } from '../services/imageStore';
 
 type PortionOption = 1 | 2 | 3 | 4 | 'custom';
 
@@ -223,7 +224,12 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
     }
   };
 
-  const handleSave = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    
     const originalTotalCalories = analyzedItems.reduce((acc, item) => acc + item.calories, 0);
     const adjustedTotalCalories = Math.round(originalTotalCalories * portionRatio);
     
@@ -236,10 +242,23 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
       fat: Math.round(item.fat * portionRatio * 10) / 10,
     }));
     
+    const logId = Date.now().toString();
+    
+    // Save image to IndexedDB instead of storing base64 in localStorage
+    let imageRef: string | undefined;
+    if (image) {
+      try {
+        imageRef = await saveImage(logId, image);
+      } catch (e) {
+        console.error('Failed to save image to IndexedDB, falling back to inline:', e);
+        imageRef = image; // Fallback: keep inline data URL
+      }
+    }
+    
     const log: MealLog = {
-      id: Date.now().toString(),
+      id: logId,
       timestamp: Date.now(),
-      imageUrl: image || undefined,
+      imageUrl: imageRef,
       description: textDescription.trim() || undefined,
       items: adjustedItems,
       totalCalories: adjustedTotalCalories,

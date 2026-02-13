@@ -9,6 +9,7 @@ import ExerciseLogger from './components/ExerciseLogger';
 import WaterTracker from './components/WaterTracker';
 import ProfileEditor from './components/ProfileEditor';
 import { ACTIVITY_MULTIPLIERS, CALORIES_PER_KG_FAT } from './constants';
+import { deleteImage, deleteImages, isIdbRef, getIdbKey, migrateLogsToIdb } from './services/imageStore';
 
 const COLORS = [
   'bg-red-500', 'bg-orange-500', 'bg-amber-500', 
@@ -218,7 +219,24 @@ const App: React.FC = () => {
         setView('dashboard');
       }
       if (storedLogs) {
-        setLogs(JSON.parse(storedLogs));
+        const parsedLogs: MealLog[] = JSON.parse(storedLogs);
+        setLogs(parsedLogs);
+        
+        // Migration: Move inline base64 images from localStorage to IndexedDB
+        // Check if any logs still have data: URLs (legacy format)
+        const hasInlineImages = parsedLogs.some(log => log.imageUrl && log.imageUrl.startsWith('data:'));
+        if (hasInlineImages) {
+          console.log('[ImageMigration] Found inline base64 images, migrating to IndexedDB...');
+          migrateLogsToIdb(parsedLogs).then(({ updatedLogs, migrated }) => {
+            if (migrated > 0) {
+              console.log(`[ImageMigration] Migrated ${migrated} images to IndexedDB`);
+              setLogs(updatedLogs as MealLog[]);
+              // The logs save effect will persist the updated refs to localStorage
+            }
+          }).catch(err => {
+            console.error('[ImageMigration] Failed to migrate images:', err);
+          });
+        }
       } else {
         setLogs([]);
       }
@@ -354,7 +372,6 @@ const App: React.FC = () => {
     }
   }, [impactHistory, currentUserId]);
 
-
   // Actions
   const handleProfileCreate = (data: Omit<UserProfile, 'id' | 'avatarColor'>) => {
     const newId = `user_${Date.now()}`;
@@ -400,6 +417,11 @@ const App: React.FC = () => {
 
   const handleDeleteLog = (logId: string) => {
     if (window.confirm("Are you sure you want to delete this meal log?")) {
+      // Delete associated image from IndexedDB if it exists
+      const logToDelete = logs.find(log => log.id === logId);
+      if (logToDelete?.imageUrl && isIdbRef(logToDelete.imageUrl)) {
+        deleteImage(getIdbKey(logToDelete.imageUrl));
+      }
       setLogs(prev => prev.filter(log => log.id !== logId));
     }
   };
@@ -606,6 +628,14 @@ const App: React.FC = () => {
   const handleResetProfile = () => {
     if (!currentUserId) return;
     if(window.confirm("Delete this profile? This cannot be undone.")) {
+        // Delete all images from IndexedDB for this user's meals
+        const imageIds = logs
+          .filter(log => log.imageUrl && isIdbRef(log.imageUrl))
+          .map(log => getIdbKey(log.imageUrl!));
+        if (imageIds.length > 0) {
+          deleteImages(imageIds);
+        }
+        
         // Remove data
         localStorage.removeItem(`smartcalorie_profile_${currentUserId}`);
         localStorage.removeItem(`smartcalorie_logs_${currentUserId}`);

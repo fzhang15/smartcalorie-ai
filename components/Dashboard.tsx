@@ -6,6 +6,28 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ImpactHistoryModal from './ImpactHistoryModal';
 import MealLogDetail from './MealLogDetail';
 import CalorieGauge from './CalorieGauge';
+import { useImageUrl } from '../hooks/useImageUrl';
+
+/** Thumbnail that resolves IndexedDB image refs asynchronously */
+const MealThumbnail: React.FC<{ imageUrl?: string }> = ({ imageUrl }) => {
+  const src = useImageUrl(imageUrl);
+  if (!src) return <div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0 animate-pulse" />;
+  return <img src={src} className="w-[4.5rem] h-[4.5rem] rounded-xl object-cover bg-gray-100 flex-shrink-0" alt="meal" />;
+};
+
+/** Full-screen image preview that resolves IndexedDB refs */
+const FullScreenImage: React.FC<{ imageUrl: string; onClose: () => void }> = ({ imageUrl, onClose }) => {
+  const src = useImageUrl(imageUrl);
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center animate-in fade-in duration-200 cursor-pointer" onClick={onClose}>
+      {src ? (
+        <img src={src} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" alt="Meal preview" />
+      ) : (
+        <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+      )}
+    </div>
+  );
+};
 
 const MiniMetric: React.FC<{icon:React.ReactNode;label:string;value:string;progress:number;color:string}> = ({icon,label,value,progress,color}) => (
   <div className="flex flex-col items-center gap-1">
@@ -259,7 +281,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
           <div className="space-y-3">
             {dml.slice().reverse().map(log=>(
               <div key={log.id} className="bg-white p-4 rounded-2xl shadow-card hover:shadow-card-hover flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 cursor-pointer active:scale-[0.98] transition-all" onClick={()=>setSelectedMealLog(log)}>
-                {log.imageUrl?<img src={log.imageUrl} className="w-[4.5rem] h-[4.5rem] rounded-xl object-cover bg-gray-100 flex-shrink-0" alt="meal"/>:log.description?<div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-brand-50 flex items-center justify-center text-brand-400 flex-shrink-0"><PenLine size={24}/></div>:<div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0"><Utensils size={24}/></div>}
+                {log.imageUrl?<MealThumbnail imageUrl={log.imageUrl}/>:log.description?<div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-brand-50 flex items-center justify-center text-brand-400 flex-shrink-0"><PenLine size={24}/></div>:<div className="w-[4.5rem] h-[4.5rem] rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0"><Utensils size={24}/></div>}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
                     <div className="min-w-0">
@@ -322,11 +344,7 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
 
       {showImpactHistory&&<ImpactHistoryModal profile={profile} logs={logs} exerciseLogs={exerciseLogs} impactHistory={impactHistory} onClose={()=>setShowImpactHistory(false)}/>}
       {selectedMealLog&&<MealLogDetail log={selectedMealLog} onClose={()=>setSelectedMealLog(null)} onDelete={onDeleteLog} onImageClick={(url)=>{setSelectedMealLog(null);setSelectedImage(url)}}/>}
-      {selectedImage&&(
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center animate-in fade-in duration-200 cursor-pointer" onClick={()=>setSelectedImage(null)}>
-          <img src={selectedImage} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" alt="Meal preview"/>
-        </div>
-      )}
+      {selectedImage&&<FullScreenImage imageUrl={selectedImage} onClose={()=>setSelectedImage(null)}/>}
 
       {isToday(viewDate)&&(
         <div className="fixed bottom-10 left-0 right-0 flex justify-center gap-3 z-40 pointer-events-none">

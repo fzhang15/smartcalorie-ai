@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Utensils, PenLine, Trash2 } from 'lucide-react';
 import { MealLog } from '../types';
 import { useSwipeToClose } from '../hooks/useSwipeToClose';
+import { useImageUrl } from '../hooks/useImageUrl';
 
 interface MealLogDetailProps {
   log: MealLog;
@@ -12,6 +13,7 @@ interface MealLogDetailProps {
 
 const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, onImageClick }) => {
   const swipe = useSwipeToClose(onClose);
+  const resolvedImageUrl = useImageUrl(log.imageUrl);
   const totalProtein = log.items.reduce((a, b) => a + b.protein, 0);
   const totalCarbs = log.items.reduce((a, b) => a + b.carbs, 0);
   const totalFat = log.items.reduce((a, b) => a + b.fat, 0);
@@ -56,11 +58,17 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
               className="rounded-xl overflow-hidden bg-gray-100 cursor-pointer active:opacity-80 transition-opacity"
               onClick={() => onImageClick?.(log.imageUrl!)}
             >
-              <img
-                src={log.imageUrl}
-                alt="Meal"
-                className="w-full aspect-square object-cover"
-              />
+              {resolvedImageUrl ? (
+                <img
+                  src={resolvedImageUrl}
+                  alt="Meal"
+                  className="w-full aspect-square object-cover"
+                />
+              ) : (
+                <div className="w-full aspect-square bg-gray-100 flex items-center justify-center animate-pulse">
+                  <Utensils size={32} className="text-gray-300" />
+                </div>
+              )}
             </div>
           ) : log.description ? (
             <div className="p-4 bg-brand-50 rounded-xl border border-brand-100">
