@@ -88,17 +88,8 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
     ? customRatio / 100 
     : 1 / portionOption;
   
-  // Camera State
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Rotate analyzing tips while analyzing
   useEffect(() => {
@@ -114,63 +105,6 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
     return () => clearInterval(interval);
   }, [isAnalyzing]);
 
-  const startCamera = async () => {
-    try {
-      setIsCameraOpen(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      streamRef.current = stream;
-      // Small timeout to ensure ref is attached if react renders slowly
-      setTimeout(() => {
-        if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-        }
-      }, 0);
-    } catch (error) {
-      console.error("Error accessing camera:", error);
-      alert("Could not access camera. Please ensure you have granted camera permissions.");
-      setIsCameraOpen(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraOpen(false);
-  };
-
-  const capturePhoto = async () => {
-    if (videoRef.current) {
-      const video = videoRef.current;
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
-      
-      // Calculate the square crop area (centered)
-      const size = Math.min(videoWidth, videoHeight);
-      const offsetX = (videoWidth - size) / 2;
-      const offsetY = (videoHeight - size) / 2;
-      
-      // Crop to square, capped at MAX_IMAGE_SIZE
-      const outputSize = Math.min(size, MAX_IMAGE_SIZE);
-      const canvas = document.createElement('canvas');
-      canvas.width = outputSize;
-      canvas.height = outputSize;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(
-          video,
-          offsetX, offsetY, size, size,
-          0, 0, outputSize, outputSize
-        );
-        const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
-        setImage(dataUrl);
-        stopCamera();
-      }
-    }
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -286,57 +220,22 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
             <Utensils className="text-brand-500" size={20} />
             Log Meal
           </h2>
-          <button onClick={() => { stopCamera(); onClose(); }} className="p-2 hover:bg-gray-100 rounded-full">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X size={20} className="text-gray-500" />
           </button>
         </div>
 
         <div ref={swipe.scrollContainerRef} className="overflow-y-auto p-4 space-y-6">
-          {isCameraOpen ? (
-            <div className="space-y-4">
-                <div className="relative rounded-xl overflow-hidden bg-black aspect-square flex items-center justify-center">
-                    <video 
-                        ref={videoRef} 
-                        autoPlay 
-                        playsInline 
-                        muted
-                        className="w-full h-full object-cover"
-                    />
-                    {/* Square bounding box overlay - full area indicator */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      {/* Border around the entire capture area */}
-                      <div className="absolute inset-2 border-2 border-white/80 rounded-lg">
-                        {/* Corner markers */}
-                        <div className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg" />
-                        <div className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg" />
-                        <div className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-lg" />
-                        <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-lg" />
-                      </div>
-                      {/* Helper text */}
-                      <div className="absolute top-4 left-0 right-0 text-center">
-                        <span className="text-white/80 text-sm font-medium bg-black/30 px-3 py-1 rounded-full">
-                          Position food in frame
-                        </span>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-6 left-0 right-0 flex justify-center items-center gap-8 z-20">
-                         <button 
-                            onClick={stopCamera} 
-                            className="p-3 rounded-full bg-white/20 backdrop-blur text-white hover:bg-white/30 transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
-                        <button 
-                            onClick={capturePhoto} 
-                            className="p-1 rounded-full border-4 border-white/50 hover:border-white transition-colors"
-                        >
-                            <div className="w-16 h-16 bg-white rounded-full shadow-lg"></div>
-                        </button>
-                         <div className="w-12"></div> {/* Spacer for alignment */}
-                    </div>
-                </div>
-            </div>
-          ) : inputMode === 'text' && analyzedItems.length === 0 ? (
+          {/* Hidden file input for native camera capture (no permission prompt) */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+          {inputMode === 'text' && analyzedItems.length === 0 ? (
             /* Text Description Input */
             <div className="space-y-4">
               <textarea
@@ -378,9 +277,9 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
             </div>
           ) : !image && inputMode === 'select' ? (
             <div className="space-y-4">
-               {/* Camera Option */}
+               {/* Camera Option - uses native file input with capture to avoid permission prompts */}
                <button 
-                 onClick={startCamera}
+                 onClick={() => cameraInputRef.current?.click()}
                  className="w-full bg-brand-50 border-2 border-brand-200 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 hover:bg-brand-100 transition-colors group"
                >
                  <div className="p-4 bg-white text-brand-600 rounded-full shadow-sm group-hover:scale-110 transition-transform">
