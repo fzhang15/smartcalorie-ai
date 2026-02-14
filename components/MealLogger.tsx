@@ -664,6 +664,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                           <input
                             type="number"
                             value={item.calories}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => updateItem('calories', parseInt(e.target.value) || 0)}
                             className="font-bold text-brand-600 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none text-right w-16"
                           />
@@ -677,6 +678,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                             type="number"
                             step="0.1"
                             value={item.protein}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => updateItem('protein', parseFloat(e.target.value) || 0)}
                             className="text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
                           />
@@ -688,6 +690,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                             type="number"
                             step="0.1"
                             value={item.carbs}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => updateItem('carbs', parseFloat(e.target.value) || 0)}
                             className="text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
                           />
@@ -699,6 +702,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
                             type="number"
                             step="0.1"
                             value={item.fat}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => updateItem('fat', parseFloat(e.target.value) || 0)}
                             className="text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
                           />

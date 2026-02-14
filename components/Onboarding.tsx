@@ -147,6 +147,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                 className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow ${formData.age && !isAgeValid(formData.age) ? 'border-red-400' : 'border-gray-200'}`}
                 placeholder="Years"
                 value={formData.age || ''}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => handleChange('age', parseInt(e.target.value) || 0)}
               />
               {formData.age !== undefined && formData.age > 0 && !isAgeValid(formData.age) && (
@@ -169,6 +170,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                 className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow ${formData.height && !isHeightValid(formData.height) ? 'border-red-400' : 'border-gray-200'}`}
                 placeholder="175"
                 value={formData.height || ''}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => handleChange('height', parseInt(e.target.value) || 0)}
               />
               {formData.height !== undefined && formData.height > 0 && !isHeightValid(formData.height) && (
@@ -213,6 +215,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onCancel }) => {
                   className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-shadow ${weightInput > 0 && !isWeightValid(weightInput, formData.weightUnit || 'kg') ? 'border-red-400' : 'border-gray-200'}`}
                   placeholder={formData.weightUnit === 'lbs' ? 'e.g. 154' : 'e.g. 70'}
                   value={weightInput || ''}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
                 />
                 {weightInput > 0 && !isWeightValid(weightInput, formData.weightUnit || 'kg') && (

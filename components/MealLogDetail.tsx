@@ -208,6 +208,7 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
                         <input
                           type="number"
                           value={item.calories}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => updateItem(idx, 'calories', parseInt(e.target.value) || 0)}
                           className="font-bold text-brand-600 bg-transparent border-b border-gray-300 focus:border-brand-500 focus:outline-none text-right w-16"
                         />
@@ -229,6 +230,7 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
                           type="number"
                           step="0.1"
                           value={item.protein}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => updateItem(idx, 'protein', parseFloat(e.target.value) || 0)}
                           className="text-gray-700 bg-transparent border-b border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
                         />
@@ -240,6 +242,7 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
                           type="number"
                           step="0.1"
                           value={item.carbs}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => updateItem(idx, 'carbs', parseFloat(e.target.value) || 0)}
                           className="text-gray-700 bg-transparent border-b border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
                         />
@@ -251,6 +254,7 @@ const MealLogDetail: React.FC<MealLogDetailProps> = ({ log, onClose, onDelete, o
                           type="number"
                           step="0.1"
                           value={item.fat}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => updateItem(idx, 'fat', parseFloat(e.target.value) || 0)}
                           className="text-gray-700 bg-transparent border-b border-gray-300 focus:border-brand-500 focus:outline-none w-12 text-center"
                         />

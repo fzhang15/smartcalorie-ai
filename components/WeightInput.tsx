@@ -46,6 +46,7 @@ const WeightInput: React.FC<WeightInputProps> = ({ currentWeight, weightUnit, on
               autoFocus
               className="w-full text-center text-4xl font-bold p-4 border-b-2 border-brand-200 focus:border-brand-500 outline-none text-brand-900 bg-transparent placeholder-gray-300"
               value={weight}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setWeight(e.target.value)}
             />
           </div>

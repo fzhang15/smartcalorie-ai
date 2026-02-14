@@ -142,6 +142,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
               max={VALIDATION.age.max}
               className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none ${age > 0 && !isAgeValid(age) ? 'border-red-400' : 'border-gray-300'}`}
               value={age}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setAge(parseInt(e.target.value) || 0)}
             />
             {age > 0 && !isAgeValid(age) ? (
@@ -161,6 +162,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
               max={VALIDATION.height.max}
               className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none ${height > 0 && !isHeightValid(height) ? 'border-red-400' : 'border-gray-300'}`}
               value={height}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
             />
             {height > 0 && !isHeightValid(height) && (
@@ -180,6 +182,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
                 max={VALIDATION.weight[weightUnit].max}
                 className={`flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none ${weightInput > 0 && !isWeightValid(weightInput, weightUnit) ? 'border-red-400' : 'border-gray-300'}`}
                 value={weightInput}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => setWeightInput(parseFloat(e.target.value) || 0)}
               />
               <div className="flex rounded-lg border border-gray-300 overflow-hidden">
@@ -231,6 +234,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
               step="50"
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
               value={dailyExerciseGoal}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setDailyExerciseGoal(parseInt(e.target.value) || 0)}
             />
             <p className="text-xs text-gray-400 mt-1">Target calories to burn through exercise each day</p>
@@ -265,6 +269,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
                       min="1"
                       className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                       value={waterGoalInput}
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) => setWaterGoalInput(parseInt(e.target.value) || 0)}
                     />
                     <div className="flex rounded-lg border border-gray-300 overflow-hidden">

@@ -108,6 +108,7 @@ const [customAmount, setCustomAmount] = useState<string>('');
                   inputMode="numeric"
                   min="1"
                   value={customAmount}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCustomAdd()}
                   placeholder={waterUnit === 'oz' ? 'Enter oz...' : 'Enter ml...'}

@@ -88,6 +88,7 @@ const ExerciseLogger: React.FC<ExerciseLoggerProps> = ({ onLogExercise, onClose 
                   min="1"
                   max="300"
                   value={duration}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setDuration(Math.max(1, parseInt(e.target.value) || 0))}
                   className="w-full p-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-orange-500 outline-none"
                 />
