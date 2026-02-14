@@ -293,10 +293,19 @@ const Dashboard: React.FC<DashboardProps> = ({profile,logs,exerciseLogs,waterLog
                     </div>
                     <span className="font-bold text-brand-600 text-lg ml-2">{log.totalCalories}</span>
                   </div>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex gap-2 items-center">
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-green-50 text-green-600">P: {log.items.reduce((a,b)=>a+b.protein,0)}g</span>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-600">C: {log.items.reduce((a,b)=>a+b.carbs,0)}g</span>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-red-50 text-red-500">F: {log.items.reduce((a,b)=>a+b.fat,0)}g</span>
+                    {log.healthScore != null && log.healthScore > 0 && (
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ml-auto ${
+                        log.healthScore >= 8 ? 'bg-green-50 text-green-600' :
+                        log.healthScore >= 5 ? 'bg-yellow-50 text-yellow-600' :
+                        'bg-red-50 text-red-500'
+                      }`}>
+                        {log.healthScore >= 8 ? '🟢' : log.healthScore >= 5 ? '🟡' : '🔴'} {log.healthScore}/10
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
