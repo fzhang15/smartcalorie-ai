@@ -335,7 +335,7 @@ const MealLogger: React.FC<MealLoggerProps> = ({ onLogMeal, onClose }) => {
               </button>
             </div>
           ) : image ? (
-            <div className={`relative rounded-xl overflow-hidden bg-gray-100 aspect-[4/3] flex items-center justify-center ${isAnalyzing ? 'ring-4 ring-brand-400 animate-pulse' : ''}`}>
+            <div className={`relative rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] flex items-center justify-center ${isAnalyzing ? 'ring-4 ring-brand-400 animate-pulse' : ''}`}>
               <img src={image!} alt="Meal" className="w-full h-full object-cover" />
               
               {/* Scanning animation overlay during analysis */}
