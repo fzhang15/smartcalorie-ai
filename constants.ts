@@ -33,6 +33,13 @@ export const mlToOz = (ml: number) => ml / ML_PER_OZ;
 export const ozToMl = (oz: number) => oz * ML_PER_OZ;
 export const DEFAULT_WATER_GOAL_ML = 2500;
 
+// Water notification constants
+export const DEFAULT_WATER_NOTIFICATION_START_HOUR = 8;   // 8:00 AM
+export const DEFAULT_WATER_NOTIFICATION_END_HOUR = 21;     // 9:00 PM
+export const DEFAULT_WATER_NOTIFICATION_DEVIATION_HOURS = 2;
+export const WATER_NOTIFICATION_CHECK_INTERVAL_MS = 30 * 60 * 1000;  // Check every 30 minutes
+export const WATER_NOTIFICATION_COOLDOWN_MS = 60 * 60 * 1000;        // Min 1 hour between notifications
+
 export const WATER_QUICK_ADD = [
   { label: 'Cup', ml: 250, emoji: '☕' },
   { label: 'Bottle', ml: 500, emoji: '🥤' },

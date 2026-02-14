@@ -4,7 +4,7 @@
  */
 
 import { UserProfile, Gender, ActivityLevel } from '../types';
-import { ACTIVITY_MULTIPLIERS } from '../constants';
+import { ACTIVITY_MULTIPLIERS, DEFAULT_WATER_NOTIFICATION_START_HOUR, DEFAULT_WATER_NOTIFICATION_END_HOUR, DEFAULT_WATER_NOTIFICATION_DEVIATION_HOURS } from '../constants';
 
 // Avatar color palette for user profiles
 const COLORS = [
@@ -86,6 +86,24 @@ export const migrateProfile = (parsedProfile: UserProfile): { profile: UserProfi
   }
   if (!parsedProfile.waterUnit) {
     parsedProfile.waterUnit = 'ml';
+    needsSave = true;
+  }
+
+  // Migration: Add water notification fields if missing
+  if (parsedProfile.waterNotificationEnabled === undefined) {
+    parsedProfile.waterNotificationEnabled = false;
+    needsSave = true;
+  }
+  if (parsedProfile.waterNotificationStartHour === undefined) {
+    parsedProfile.waterNotificationStartHour = DEFAULT_WATER_NOTIFICATION_START_HOUR;
+    needsSave = true;
+  }
+  if (parsedProfile.waterNotificationEndHour === undefined) {
+    parsedProfile.waterNotificationEndHour = DEFAULT_WATER_NOTIFICATION_END_HOUR;
+    needsSave = true;
+  }
+  if (parsedProfile.waterNotificationDeviationHours === undefined) {
+    parsedProfile.waterNotificationDeviationHours = DEFAULT_WATER_NOTIFICATION_DEVIATION_HOURS;
     needsSave = true;
   }
 

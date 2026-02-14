@@ -8,12 +8,16 @@ import ExerciseLogger from './components/ExerciseLogger';
 import WaterTracker from './components/WaterTracker';
 import ProfileEditor from './components/ProfileEditor';
 import { useAppData } from './hooks/useAppData';
+import { useWaterNotification } from './hooks/useWaterNotification';
 
 const App: React.FC = () => {
   const {
     users, profile, logs, exerciseLogs, waterLogs, impactHistory, view,
     actions,
   } = useAppData();
+
+  // Water notification reminders (runs periodic checks when enabled)
+  useWaterNotification(profile, waterLogs);
 
   // UI State (modal visibility — stays in App since it's purely presentational)
   const [showLogger, setShowLogger] = useState(false);

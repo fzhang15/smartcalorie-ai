@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Check, User } from 'lucide-react';
+import { X, Check, User, Bell } from 'lucide-react';
 import { UserProfile, Gender, WeightUnit, WaterUnit } from '../types';
-import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg, mlToOz, ozToMl, DEFAULT_WATER_GOAL_ML, formatWaterAmount } from '../constants';
+import { ACTIVITY_MULTIPLIERS, kgToLbs, lbsToKg, mlToOz, ozToMl, DEFAULT_WATER_GOAL_ML, formatWaterAmount, DEFAULT_WATER_NOTIFICATION_START_HOUR, DEFAULT_WATER_NOTIFICATION_END_HOUR, DEFAULT_WATER_NOTIFICATION_DEVIATION_HOURS } from '../constants';
 import { useSwipeToClose } from '../hooks/useSwipeToClose';
+import { requestNotificationPermission } from '../hooks/useWaterNotification';
 
 const VALIDATION = {
   age: { min: 1, max: 120 },
@@ -40,6 +41,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
       ? Math.round(mlToOz(profile.dailyWaterGoalMl || DEFAULT_WATER_GOAL_ML)) 
       : (profile.dailyWaterGoalMl || DEFAULT_WATER_GOAL_ML)
   );
+  const [waterNotificationEnabled, setWaterNotificationEnabled] = useState<boolean>(profile.waterNotificationEnabled || false);
+  const [waterNotificationStartHour, setWaterNotificationStartHour] = useState<number>(profile.waterNotificationStartHour ?? DEFAULT_WATER_NOTIFICATION_START_HOUR);
+  const [waterNotificationEndHour, setWaterNotificationEndHour] = useState<number>(profile.waterNotificationEndHour ?? DEFAULT_WATER_NOTIFICATION_END_HOUR);
+  const [waterNotificationDeviationHours, setWaterNotificationDeviationHours] = useState<number>(profile.waterNotificationDeviationHours ?? DEFAULT_WATER_NOTIFICATION_DEVIATION_HOURS);
+  const [notificationPermissionDenied, setNotificationPermissionDenied] = useState(false);
 
   const handleSave = () => {
     // Convert weight to kg if needed
@@ -70,6 +76,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
       waterTrackingEnabled,
       waterUnit,
       dailyWaterGoalMl: waterGoalMl,
+      waterNotificationEnabled: waterTrackingEnabled ? waterNotificationEnabled : false,
+      waterNotificationStartHour,
+      waterNotificationEndHour,
+      waterNotificationDeviationHours,
     };
 
     // Update lastWeightUpdate and calibrationBaseWeight if weight changed
@@ -306,6 +316,103 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onSave, onClose 
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">Recommended: 2,000–3,000 ml (68–101 oz) per day</p>
+                </div>
+
+                {/* Water Reminder Notification */}
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                      <Bell size={14} className="text-blue-500" />
+                      Water Reminder
+                    </label>
+                    <button
+                      onClick={async () => {
+                        if (!waterNotificationEnabled) {
+                          // Turning on: request permission first
+                          const granted = await requestNotificationPermission();
+                          if (granted) {
+                            setWaterNotificationEnabled(true);
+                            setNotificationPermissionDenied(false);
+                          } else {
+                            setNotificationPermissionDenied(true);
+                          }
+                        } else {
+                          setWaterNotificationEnabled(false);
+                        }
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        waterNotificationEnabled ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          waterNotificationEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {notificationPermissionDenied && (
+                    <p className="text-xs text-red-500 mb-3">Notifications are blocked. Please enable them in your browser settings.</p>
+                  )}
+                  {waterNotificationEnabled && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* Notification Period */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Notification Period</label>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={waterNotificationStartHour}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              setWaterNotificationStartHour(val);
+                              if (val >= waterNotificationEndHour) {
+                                setWaterNotificationEndHour(Math.min(val + 1, 23));
+                              }
+                            }}
+                            className="flex-1 p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            {Array.from({ length: 24 }, (_, i) => (
+                              <option key={i} value={i} disabled={i >= waterNotificationEndHour}>
+                                {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-sm text-gray-400 font-medium">to</span>
+                          <select
+                            value={waterNotificationEndHour}
+                            onChange={(e) => setWaterNotificationEndHour(parseInt(e.target.value))}
+                            className="flex-1 p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            {Array.from({ length: 24 }, (_, i) => (
+                              <option key={i} value={i} disabled={i <= waterNotificationStartHour}>
+                                {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      {/* Deviation Threshold */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Remind when behind by</label>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={waterNotificationDeviationHours}
+                            onChange={(e) => setWaterNotificationDeviationHours(parseFloat(e.target.value))}
+                            className="flex-1 p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            <option value={0.5}>30 minutes</option>
+                            <option value={1}>1 hour</option>
+                            <option value={1.5}>1.5 hours</option>
+                            <option value={2}>2 hours</option>
+                            <option value={3}>3 hours</option>
+                            <option value={4}>4 hours</option>
+                          </select>
+                          <span className="text-xs text-gray-400">worth of water</span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">You'll be notified if your intake falls behind by this much</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

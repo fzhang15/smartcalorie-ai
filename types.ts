@@ -31,6 +31,10 @@ export interface UserProfile {
   waterTrackingEnabled: boolean; // Whether water tracking is enabled (default false)
   dailyWaterGoalMl: number; // Daily water intake goal in ml (default 2500)
   waterUnit: WaterUnit; // User's preferred water unit (default 'ml')
+  waterNotificationEnabled: boolean; // Whether water reminder notifications are enabled (default false)
+  waterNotificationStartHour: number; // Start hour of notification window in local time (default 8 = 8AM)
+  waterNotificationEndHour: number; // End hour of notification window in local time (default 21 = 9PM)
+  waterNotificationDeviationHours: number; // Trigger notification when behind by this many hours' worth (default 2)
 }
 
 export interface UserSummary {

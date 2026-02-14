@@ -43,6 +43,16 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Goal reached celebration indicator 🎉
 - **No impact on calorie calculations** — purely a hydration tracker
 
+### 🔔 Water Reminder Notifications
+- **Opt-in feature** — nested under Water Tracking in Profile Editor
+- **Proportional deficit detection** — calculates expected intake based on time elapsed in your active window, not just a fixed schedule
+- **Configurable notification period** — default 8 AM to 9 PM, adjustable to any hour range
+- **Deviation threshold** — triggers notification when you're behind by a configurable amount (default: 2 hours' worth of water; options from 30 min to 4 hours)
+- **Browser Notification API** — works when the tab is open (foreground or background); permission requested on toggle-on
+- **Spam prevention** — 1-hour cooldown between notifications, checks run every 30 minutes
+- **Smart skip** — no notifications after daily goal is reached or outside the notification window
+- **Permission denied handling** — shows inline error message if browser notifications are blocked
+
 ### ⚖️ Smart Weight Prediction with Calibration
 - Automatic weight prediction based on net calorie history
 - Tracks cumulative calorie surplus/deficit since last weight update
@@ -198,6 +208,10 @@ A smart calorie tracking app powered by Google Gemini AI. Take a photo of your f
 - Water tracking enabled (boolean, default false)
 - Daily water goal in ml (default 2500)
 - Water unit preference (ml or oz)
+- Water notification enabled (boolean, default false)
+- Water notification start hour (default 8 = 8 AM)
+- Water notification end hour (default 21 = 9 PM)
+- Water notification deviation threshold in hours (default 2)
 
 ### Meal Log
 - Timestamp, Meal type
@@ -421,7 +435,8 @@ smartcalorie-ai/
 │   ├── ProfileEditor.tsx   # Profile settings editor
 │   └── ImpactHistoryModal.tsx  # Daily/weekly/monthly weight trend charts
 ├── hooks/
-│   └── useSwipeToClose.ts  # Swipe-down gesture hook with scroll locking
+│   ├── useSwipeToClose.ts  # Swipe-down gesture hook with scroll locking
+│   └── useWaterNotification.ts  # Water reminder notification hook with proportional deficit detection
 ├── services/
 │   └── geminiService.ts    # Gemini AI integration (image & text analysis)
 ├── public/
